@@ -53,6 +53,7 @@ export const transactionSchema = z
     source: z.enum(["manual", "demo", "recurring"]),
     recurringKey: z.string().optional(),
     createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime().optional(),
   })
   .refine(
     (t) => (t.type === "adjustment" ? t.amountMinor !== 0 : t.amountMinor > 0),

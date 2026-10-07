@@ -1,10 +1,20 @@
 "use client";
 import { useState } from "react";
-import { Plus, Search, Download, Trash2 } from "lucide-react";
+import {
+  Plus,
+  Search,
+  Download,
+  Trash2,
+  Pencil,
+  SlidersHorizontal,
+} from "lucide-react";
 import { useFinance } from "./provider";
 import { useEntry } from "./workspace";
 import { TransactionRows } from "./dashboard";
 import { Empty, Modal, download } from "./ui";
+import { EntryForm } from "./forms";
+import type { Transaction } from "@/lib/local/model";
+import { Money } from "./ui";
 import { formatMoney } from "@/lib/finance/money";
 export function Transactions() {
   const { state, update } = useFinance(),
@@ -12,12 +22,18 @@ export function Transactions() {
   const [query, setQuery] = useState(""),
     [type, setType] = useState(""),
     [account, setAccount] = useState(""),
-    [category, setCategory] = useState(""),
+    [category, setCategory] = useState(() =>
+      typeof window !== "undefined"
+        ? (new URLSearchParams(window.location.search).get("category") ?? "")
+        : "",
+    ),
     [from, setFrom] = useState(""),
     [to, setTo] = useState(""),
     [page, setPage] = useState(1),
     [remove, setRemove] = useState<string | null>(null),
     [error, setError] = useState("");
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
   const filtered = [...state.transactions]
     .filter(
       (t) =>
@@ -80,7 +96,35 @@ export function Transactions() {
           </button>
         </div>
       </div>
-      <div className="card filters">
+      <div className="filter-toolbar">
+        <button
+          className="btn-secondary"
+          aria-expanded={showFilters}
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <SlidersHorizontal size={17} /> Фильтры
+          {[type, account, category, from, to].filter(Boolean).length
+            ? ` · ${[type, account, category, from, to].filter(Boolean).length}`
+            : ""}
+        </button>
+        <button
+          className="text-button"
+          onClick={() => {
+            setQuery("");
+            setType("");
+            setAccount("");
+            setCategory("");
+            setFrom("");
+            setTo("");
+            setPage(1);
+          }}
+        >
+          Сбросить
+        </button>
+      </div>
+      <div
+        className={`card filters ${showFilters ? "filters-open" : "filters-compact"}`}
+      >
         <div className="search-field">
           <Search size={17} />
           <input
@@ -147,6 +191,30 @@ export function Transactions() {
           />
         </label>
       </div>
+      <div className="transaction-totals">
+        {[
+          { type: "income", label: "Доходы" },
+          { type: "expense", label: "Расходы" },
+        ].map((item) => (
+          <div key={item.type}>
+            <small>
+              {item.label} · {state.profile.currency}
+            </small>
+            <strong>
+              <Money
+                value={filtered
+                  .filter(
+                    (t) =>
+                      t.type === item.type &&
+                      state.accounts.find((a) => a.id === t.accountId)
+                        ?.currency === state.profile.currency,
+                  )
+                  .reduce((sum, t) => sum + t.amountMinor, 0)}
+              />
+            </strong>
+          </div>
+        ))}
+      </div>
       <div className="list-summary">
         <span>Найдено операций: {filtered.length}</span>
         <div className="button-row">
@@ -174,6 +242,13 @@ export function Transactions() {
                 .map((t) => (
                   <div className="deletable-row" key={t.id}>
                     <TransactionRows transactions={[t]} />
+                    <button
+                      className="icon-button"
+                      aria-label={`Редактировать ${t.description || "операцию"}`}
+                      onClick={() => setEditing(t)}
+                    >
+                      <Pencil size={15} />
+                    </button>
                     <button
                       className="icon-button"
                       aria-label={`Удалить ${t.description || "операцию"}`}
@@ -225,6 +300,14 @@ export function Transactions() {
             }
           />
         </section>
+      )}
+      {editing && (
+        <EntryForm
+          key={editing.id}
+          kind={editing.type}
+          initial={editing}
+          onClose={() => setEditing(null)}
+        />
       )}
       {remove && (
         <Modal title="Удалить операцию?" onClose={() => setRemove(null)}>

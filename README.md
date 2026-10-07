@@ -25,7 +25,7 @@
 - PWA, PNG-иконки, iPhone safe areas, офлайн-загрузка основных страниц.
 - Полное удаление данных устройства с явным подтверждением.
 
-Кнопка KOPILKA AI явно помечена «Скоро»; вызовов LLM и платёжных сервисов нет.
+Финансовый помощник отвечает на четыре типовых вопроса через локальные расчёты; вызовов LLM и платёжных сервисов нет.
 
 ## Стек и архитектура
 
@@ -133,8 +133,8 @@ CSV экранирует ячейки и нейтрализует spreadsheet fo
 
 1. **Текущий этап:** локальный учёт, planning, базовая аналитика, PWA, тестируемый домен.
 2. **Cloud Foundation:** Supabase Auth, миграции, RLS, серверные транзакции, синхронизация, полный onboarding и серверная пагинация.
-3. **Расширенная аналитика:** произвольные периоды, Sankey/bubble, сравнение одинаковых частей месяца, financial score, достижения, anomaly detection, Financial Twin.
-4. **Умное планирование:** отдельные разовые planned transactions, frequencies, редактирование операций/целей/шаблонов, tags/receipts, сезонность, What-if.
+3. **Расширенная аналитика:** произвольные периоды, Sankey/bubble, расширение методики financial score, достижения, anomaly detection, Financial Twin.
+4. **Умное планирование:** отдельные разовые planned transactions, frequencies, редактирование целей/шаблонов, tags/receipts, сезонность и расширение What-if.
 5. **AI и Premium:** серверные агрегаты и безопасные tools, явное согласие на передачу агрегатов, feature flags, подписка. Никаких выдуманных финансовых цифр.
 
 Подробности исходного аудита: [docs/AUDIT.md](docs/AUDIT.md).
@@ -153,3 +153,26 @@ Repository Settings → Pages → Source must be **GitHub Actions**.
 Expected address: https://iliavsevolodov.github.io/kopilka/.
 Personal data is stored separately in each browser/origin; JSON backup can move
 it between preview hosting and GitHub Pages.
+
+
+### Product refinement — October 2026
+
+- Actual operations can be edited without double counting. Creation time, source
+  and recurring identity are preserved; `updatedAt` records a revision. A stale
+  editor is rejected when another tab has already changed the same operation.
+- Frequent category shortcuts, a remembered account, collapsible filters and
+  period totals make daily entry and reviewing history faster.
+- Month-to-date category comparisons use equal calendar-day counts. The shorter
+  previous month also limits the current comparison window. No prior expense
+  means a missing percentage rather than invented growth.
+- Financial form beta: equally weighted available reserve, savings-rate and
+  budget-compliance components. It is not a credit score, and is withheld without
+  historical transactions and received current-month income. Methodology is visible.
+- What-if changes estimated discretionary spending and adds an income difference
+  every 30 days. A one-off purchase is deducted immediately. It never writes
+  actual operations or promises future results.
+- Purchase analysis checks the full 30 days after the requested purchase date,
+  including purchases up to a year ahead. It reports the minimum balance and any
+  reserve shortfall or predicted cash-gap date.
+- Local decision assistant and offline status work without account registration,
+  external AI, Supabase or network transmission of financial data.

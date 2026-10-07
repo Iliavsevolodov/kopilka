@@ -12,6 +12,7 @@ import {
   calculateSavingsRate,
 } from "@/lib/finance/engine";
 import {
+  dateSchema,
   stateSchema,
   transactionSchema,
   type State,
@@ -66,6 +67,37 @@ export function addTransaction(s: State, t: Transaction): State {
   )
     return s;
   return { ...s, transactions: [t, ...s.transactions] };
+}
+/** Replace an actual operation without duplicating its effect or recurring identity. */
+export function editTransaction(s: State, replacement: Transaction): State {
+  const previous = s.transactions.find((t) => t.id === replacement.id);
+  if (!previous) throw new Error("Операция уже удалена. Обновите историю.");
+  if (previous.updatedAt !== replacement.updatedAt)
+    throw new Error("Операция изменена в другой вкладке. Откройте её заново.");
+  const next = {
+    ...replacement,
+    createdAt: previous.createdAt,
+    source: previous.source,
+    recurringKey: previous.recurringKey,
+    updatedAt: new Date().toISOString(),
+  };
+  validateTransaction(
+    {
+      ...s,
+      accounts: s.accounts.map((a) =>
+        (a.id === previous.accountId && a.id === next.accountId) ||
+        (a.id === previous.destinationAccountId &&
+          a.id === next.destinationAccountId)
+          ? { ...a, archived: false }
+          : a,
+      ),
+    },
+    next,
+  );
+  return {
+    ...s,
+    transactions: s.transactions.map((t) => (t.id === next.id ? next : t)),
+  };
 }
 export function validateState(s: State) {
   stateSchema.parse(s);
@@ -454,6 +486,13 @@ export function insights(s: State, asOf = today(s.profile.timezone)) {
   return list.slice(0, 3);
 }
 export function purchaseImpact(s: State, cost: number, date: string) {
+  dateSchema.parse(date);
+  const offset = differenceInCalendarDays(
+    parseISO(date),
+    parseISO(today(s.profile.timezone)),
+  );
+  if (offset < 0 || offset > 365)
+    throw new Error("Выберите дату в ближайшие 365 дней");
   const days = Math.min(
     365,
     Math.max(
@@ -464,7 +503,9 @@ export function purchaseImpact(s: State, cost: number, date: string) {
       ),
     ),
   );
-  const f = forecast(s, Math.max(days, 30));
+  if (!Number.isSafeInteger(cost) || cost <= 0)
+    throw new Error("Введите положительную стоимость");
+  const f = forecast(s, days + 30);
   const m = metrics(s);
   const at = f.points[days]?.balance ?? m.liquid;
   const minimum = Math.min(
@@ -472,15 +513,18 @@ export function purchaseImpact(s: State, cost: number, date: string) {
   );
   return {
     remaining: at - cost,
+    minimum,
+    reserveShortfall: Math.max(0, m.reserve + m.reserved - minimum),
+    gapDate: f.points.slice(days).find((p) => p.balance - cost < 0)?.date,
     reserveMonths: m.mandatory
       ? Math.max(0, at - cost - m.reserved) / m.mandatory
       : 0,
     status:
       minimum < 0
         ? "Высокий финансовый риск"
-        : at - cost < m.reserve + m.reserved
+        : minimum < m.reserve + m.reserved
           ? "Покупка затронет резерв или цели"
           : "Можно позволить",
-    safe: minimum >= 0 && at - cost >= m.reserve + m.reserved,
+    safe: minimum >= m.reserve + m.reserved,
   };
 }

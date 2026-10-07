@@ -13,7 +13,7 @@ import {
   uid,
   type Transaction,
 } from "@/lib/local/model";
-import { addTransaction, balances } from "@/lib/local/finance";
+import { addTransaction, editTransaction, balances } from "@/lib/local/finance";
 export type FormKind =
   | "expense"
   | "income"
@@ -38,8 +38,10 @@ const titles: Record<FormKind, string> = {
 export function EntryForm({
   kind,
   onClose,
+  initial,
 }: {
   kind: FormKind;
+  initial?: Transaction;
   onClose: () => void;
 }) {
   const { state, update } = useFinance();
@@ -48,10 +50,32 @@ export function EntryForm({
     [type, setType] = useState<"expense" | "income">(
       kind === "income" ? "income" : "expense",
     );
-  const accounts = state.accounts.filter((a) => !a.archived);
-  const categories = state.categories.filter(
-    (c) => !c.archived && c.kind === type,
+  const accounts = state.accounts.filter(
+    (a) =>
+      !a.archived ||
+      a.id === initial?.accountId ||
+      a.id === initial?.destinationAccountId,
   );
+  const categories = state.categories.filter(
+    (c) => (!c.archived || c.id === initial?.categoryId) && c.kind === type,
+  );
+  const [selectedCategory, setSelectedCategory] = useState(
+    initial?.categoryId ?? "",
+  );
+  const [selectedAccount, setSelectedAccount] = useState(
+    initial?.accountId ??
+      (typeof window !== "undefined" &&
+      accounts.some((a) => a.id === localStorage.getItem("kopilka.lastAccount"))
+        ? localStorage.getItem("kopilka.lastAccount")!
+        : (accounts[0]?.id ?? "")),
+  );
+  const favorites = [...categories]
+    .sort(
+      (a, b) =>
+        state.transactions.filter((t) => t.categoryId === b.id).length -
+        state.transactions.filter((t) => t.categoryId === a.id).length,
+    )
+    .slice(0, 5);
   const transaction = ["expense", "income", "transfer", "adjustment"].includes(
     kind,
   );
@@ -67,7 +91,8 @@ export function EntryForm({
         const id = uid();
         if (transaction) {
           const t: Transaction = {
-            id,
+            id: initial?.id ?? id,
+            updatedAt: initial?.updatedAt,
             type: kind as Transaction["type"],
             amountMinor: amount(),
             accountId: str("account"),
@@ -84,7 +109,7 @@ export function EntryForm({
             source: "manual",
             createdAt: new Date().toISOString(),
           };
-          return addTransaction(s, t);
+          return initial ? editTransaction(s, t) : addTransaction(s, t);
         }
         if (kind === "account") {
           const a = accountSchema.parse({
@@ -172,6 +197,13 @@ export function EntryForm({
           ],
         };
       });
+      if (transaction) {
+        try {
+          localStorage.setItem("kopilka.lastAccount", str("account"));
+        } catch {
+          /* Preferences must not block a saved operation. */
+        }
+      }
       onClose();
     } catch (err) {
       setError(
@@ -186,7 +218,10 @@ export function EntryForm({
     }
   }
   return (
-    <Modal title={titles[kind]} onClose={onClose}>
+    <Modal
+      title={initial ? "Редактировать операцию" : titles[kind]}
+      onClose={onClose}
+    >
       <form onSubmit={submit} className="entry-form">
         {["account", "goal", "recurring", "category"].includes(kind) && (
           <Field label="Название">
@@ -230,6 +265,7 @@ export function EntryForm({
           >
             <div className="amount-input">
               <input
+                defaultValue={initial ? initial.amountMinor / 100 : undefined}
                 name="amount"
                 inputMode="decimal"
                 required
@@ -237,7 +273,10 @@ export function EntryForm({
                 placeholder="0"
                 aria-label="Сумма"
               />
-              <span>{state.profile.currency}</span>
+              <span>
+                {state.accounts.find((a) => a.id === selectedAccount)
+                  ?.currency ?? state.profile.currency}
+              </span>
             </div>
           </Field>
         )}
@@ -245,30 +284,49 @@ export function EntryForm({
           kind === "income" ||
           kind === "budget" ||
           kind === "recurring") && (
-          <Field label="Категория">
-            <select name="category" required>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.icon} {c.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          <>
+            {(kind === "expense" || kind === "income") && (
+              <div
+                className="favorite-categories"
+                role="group"
+                aria-label="Частые категории"
+              >
+                {favorites.map((c) => (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className={selectedCategory === c.id ? "selected" : ""}
+                    aria-pressed={selectedCategory === c.id}
+                    onClick={() => setSelectedCategory(c.id)}
+                  >
+                    {c.name}
+                  </button>
+                ))}
+              </div>
+            )}
+            <Field label="Категория">
+              <select
+                name="category"
+                required
+                value={selectedCategory || categories[0]?.id || ""}
+                onChange={(e) => setSelectedCategory(e.target.value)}
+              >
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.icon} {c.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </>
         )}
         {(transaction || kind === "recurring") && (
           <Field label={kind === "transfer" ? "Со счёта" : "Счёт"}>
             <select
               name="account"
               required
-              defaultValue={
-                typeof window !== "undefined"
-                  ? (localStorage.getItem("kopilka.lastAccount") ??
-                    accounts[0]?.id)
-                  : accounts[0]?.id
-              }
-              onChange={(e) =>
-                localStorage.setItem("kopilka.lastAccount", e.target.value)
-              }
+              value={selectedAccount}
+              onChange={(e) => setSelectedAccount(e.target.value)}
             >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -280,7 +338,11 @@ export function EntryForm({
         )}
         {kind === "transfer" && (
           <Field label="На счёт">
-            <select name="destination" required defaultValue={accounts[1]?.id}>
+            <select
+              name="destination"
+              required
+              defaultValue={initial?.destinationAccountId ?? accounts[1]?.id}
+            >
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
                   {a.name} · {a.currency}
@@ -303,7 +365,7 @@ export function EntryForm({
               name="date"
               type="date"
               required
-              defaultValue={today(state.profile.timezone)}
+              defaultValue={initial?.date ?? today(state.profile.timezone)}
               max={transaction ? today(state.profile.timezone) : undefined}
             />
           </Field>
@@ -311,6 +373,7 @@ export function EntryForm({
         {transaction && (
           <Field label="Комментарий">
             <input
+              defaultValue={initial?.description}
               name="description"
               maxLength={300}
               placeholder="На что потратили или откуда доход"
@@ -319,7 +382,16 @@ export function EntryForm({
         )}
         {kind === "expense" && (
           <Field label="Характер расхода">
-            <select name="behavior">
+            <select
+              name="behavior"
+              defaultValue={
+                initial?.mandatory
+                  ? "mandatory"
+                  : initial?.impulsive
+                    ? "impulsive"
+                    : "normal"
+              }
+            >
               <option value="normal">Обычный</option>
               <option value="mandatory">Обязательный</option>
               <option value="impulsive">Импульсивный</option>

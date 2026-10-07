@@ -117,7 +117,7 @@ test("demo isolation, backup and explicit deletion confirmation", async ({
     .click();
   await page.goto("/dashboard");
   await expect(page.locator(".hero-amount")).toContainText("442");
-  await page.getByRole("button", { name: "Перейти к моим финансам" }).click();
+  await page.getByRole("button", { name: "Мои финансы", exact: true }).click();
   await expect(page.locator(".hero-amount")).toContainText("100");
   await page.goto("/profile");
   await page
@@ -160,7 +160,9 @@ test("all screens responsive with no horizontal scrolling", async ({
 test("dark mode, hidden balances and valid PWA manifest", async ({ page }) => {
   await demo(page);
   await page.goto("/profile");
-  await page.getByRole("combobox", { name: "Тема", exact: true }).selectOption("dark");
+  await page
+    .getByRole("combobox", { name: "Тема", exact: true })
+    .selectOption("dark");
   await page.getByRole("button", { name: "Сохранить настройки" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.goto("/dashboard");
@@ -200,4 +202,57 @@ test("installed shell reloads offline and stores a new expense", async ({
     .click();
   expect((await state(page)).transactions[0].amountMinor).toBe(50000);
   await context.setOffline(false);
+});
+
+test("editing changes balance once and keeps the same transaction", async ({
+  page,
+}) => {
+  await onboard(page);
+  await page.getByRole("button", { name: "Расход", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByLabel("Сумма", { exact: true }).fill("10000");
+  await dialog.getByLabel("Комментарий").fill("Проверка редактирования");
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(page.locator(".hero-amount")).toContainText("90");
+  await page.goto("/transactions");
+  await page
+    .getByRole("button", {
+      name: "Редактировать Проверка редактирования",
+      exact: true,
+    })
+    .click();
+  await expect(dialog.getByLabel("Сумма", { exact: true })).toHaveValue(
+    "10000",
+  );
+  await dialog.getByLabel("Сумма", { exact: true }).fill("2500");
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  const data = await state(page);
+  expect(data.transactions).toHaveLength(1);
+  expect(data.transactions[0].amountMinor).toBe(250000);
+  expect(data.transactions[0].updatedAt).toBeTruthy();
+  await page.goto("/dashboard");
+  await expect(page.locator(".hero-amount")).toContainText("97");
+});
+test("scenario and local assistant work without modifying recorded finances", async ({
+  page,
+}) => {
+  await demo(page);
+  const before = await page.evaluate(() =>
+    localStorage.getItem("kopilka.demo.v1"),
+  );
+  await page.goto("/plan");
+  const scenario = page.locator(".what-if");
+  await scenario.getByLabel("Изменение дохода в месяц").fill("20000");
+  await expect(scenario.locator(".scenario-result")).toContainText("Разница");
+  await scenario.getByLabel("Разовая покупка сейчас").fill("-1");
+  await expect(scenario.getByRole("alert")).toBeVisible();
+  await page.goto("/assistant");
+  await page.getByRole("button", { name: "Что будет через месяц?" }).click();
+  await expect(page.locator(".advisor-answer")).toContainText(
+    "Ожидаемый ликвидный остаток",
+  );
+  expect(
+    await page.evaluate(() => localStorage.getItem("kopilka.demo.v1")),
+  ).toBe(before);
 });

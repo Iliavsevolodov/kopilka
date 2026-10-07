@@ -1,6 +1,7 @@
 "use client";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { ConnectionStatus } from "./connection-status";
 import { usePathname } from "next/navigation";
 import {
   House,
@@ -98,7 +99,7 @@ function Shell({ children }: { children: ReactNode }) {
           <div className="sidebar-divider" />
           <Link className="ai-link" href="/assistant">
             <Sparkles size={19} />
-            KOPILKA AI<span>СКОРО</span>
+            Помощник<span>LOCAL</span>
           </Link>
           <div className="sidebar-bottom">
             <div className="sidebar-note">
@@ -139,7 +140,7 @@ function Shell({ children }: { children: ReactNode }) {
               Моя Копилка <span>/</span>{" "}
               <strong>
                 {nav.find((n) => n.href === path)?.label ??
-                  (path === "/assistant" ? "KOPILKA AI" : "Профиль")}
+                  (path === "/assistant" ? "Помощник" : "Профиль")}
               </strong>
             </span>
             <Link href="/transactions" className="top-search">
@@ -169,6 +170,7 @@ function Shell({ children }: { children: ReactNode }) {
               </button>
             </div>
           )}
+          <ConnectionStatus />
           <main className="page-content">{children}</main>
         </div>
         <nav className="mobile-nav" aria-label="Нижняя навигация">

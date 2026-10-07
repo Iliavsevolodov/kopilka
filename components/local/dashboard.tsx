@@ -350,6 +350,14 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
           </section>
         </div>
         <aside className="dashboard-aside">
+          <Link href="/assistant" className="card assistant-entry">
+            <Sparkles size={22} />
+            <div>
+              <strong>Разберём ваши финансы</strong>
+              <p>Расходы, планы и решения — с объяснениями</p>
+            </div>
+            <ArrowUpRight size={18} />
+          </Link>
           <section className="card insight-card">
             <div className="section-title">
               <h2>

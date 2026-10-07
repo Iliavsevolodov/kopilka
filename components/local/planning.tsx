@@ -1,4 +1,5 @@
 "use client";
+import { WhatIf } from "./intelligence";
 import { useState } from "react";
 import {
   addDays,
@@ -386,6 +387,7 @@ export function Planning() {
       </section>
       <div className="planning-grid">
         <PurchaseCalculator />
+        <WhatIf />
         <section className="card">
           <SectionTitle title="Регулярные платежи" />
           {state.recurring.map((r) => (
@@ -550,6 +552,26 @@ function PurchaseCalculator() {
               обязательных расходов за вычетом целей:{" "}
               {result.reserveMonths.toFixed(1)} мес.
             </p>
+            <p>
+              Минимальный остаток в следующие 30 дней:{" "}
+              <Money value={result.minimum} approx />.
+            </p>
+            {result.gapDate && (
+              <p>
+                Возможный кассовый разрыв:{" "}
+                {new Intl.DateTimeFormat("ru-RU").format(
+                  new Date(result.gapDate),
+                )}
+                .
+              </p>
+            )}
+            {result.reserveShortfall > 0 && (
+              <p>
+                Чтобы сохранить резерв и деньги на цели, в этом сценарии не
+                хватает <Money value={result.reserveShortfall} approx />.
+                Уменьшите стоимость или перенесите покупку.
+              </p>
+            )}
             <small>
               Расчёт по базовому сценарию. Будущие доходы не гарантированы.
             </small>

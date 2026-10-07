@@ -1,4 +1,5 @@
 "use client";
+import { FinancialHealth, PeriodComparison } from "./intelligence";
 import Link from "next/link";
 import { useFinance } from "./provider";
 import { metrics, historyPoints } from "@/lib/local/finance";
@@ -23,8 +24,6 @@ export function Analytics() {
       .reduce((n, t) => n + t.amountMinor, 0),
   }));
   const maximum = Math.max(1, ...flows.flatMap((f) => [f.income, f.expense]));
-  const prev = flows[4].expense;
-  const change = prev ? ((m.flow.expensesMinor - prev) / prev) * 100 : null;
   const heat = Array.from({ length: 91 }, (_, i) => {
     const date = format(addDays(parseISO(asOf), i - 90), "yyyy-MM-dd");
     return {
@@ -52,6 +51,10 @@ export function Analytics() {
           }).format(new Date())}
         </span>
       </div>
+      <div className="planning-grid">
+        <FinancialHealth />
+        <PeriodComparison />
+      </div>
       {!state.transactions.length ? (
         <section className="card">
           <Empty
@@ -72,11 +75,7 @@ export function Analytics() {
               <strong className="big-number">
                 <Money value={m.flow.expensesMinor} />
               </strong>
-              <p className="muted">
-                {change === null
-                  ? "Нет данных для сравнения"
-                  : `${change >= 0 ? "+" : ""}${change.toFixed(1)}% к полному предыдущему месяцу`}
-              </p>
+              <p className="muted">Фактические расходы с начала месяца</p>
             </section>
             <section className="card">
               <small>Чистый денежный поток</small>

@@ -1,4 +1,5 @@
 "use client";
+import { DecisionAssistant } from "./intelligence";
 import { Glyph } from "./glyph";
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -11,7 +12,6 @@ import {
   Target,
   ShieldCheck,
   Smartphone,
-  Sparkles,
 } from "lucide-react";
 import { useFinance } from "./provider";
 import { useEntry } from "./workspace";
@@ -357,29 +357,5 @@ export function Profile() {
   );
 }
 export function Assistant() {
-  return (
-    <section className="card assistant-preview">
-      <span className="assistant-orb">
-        <Sparkles size={40} />
-      </span>
-      <span className="eyebrow">СЛЕДУЮЩИЙ ЭТАП · СКОРО</span>
-      <h1>Ваш финансовый собеседник</h1>
-      <p>
-        KOPILKA AI сможет объяснять ваши финансовые привычки и помогать
-        принимать решения на основе точных расчётов.
-      </p>
-      <div className="question-chips">
-        <span>Где я перерасходую?</span>
-        <span>Когда накоплю миллион?</span>
-        <span>Разбери этот месяц</span>
-      </div>
-      <p className="hint">
-        Сейчас доступен расчёт покупки без AI. Финансовые данные не передаются
-        внешним сервисам.
-      </p>
-      <Link className="btn-primary" href="/plan">
-        Проверить покупку в плане
-      </Link>
-    </section>
-  );
+  return <DecisionAssistant />;
 }

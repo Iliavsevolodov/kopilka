@@ -1,6 +1,6 @@
 /* Cache only public local-first shells. Scope isolates project-site caches. */
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
-const CACHE = `kopilka-local-v4-${BASE}`;
+const CACHE = `kopilka-local-v5-${BASE}`;
 const route = (name) => `${BASE}/${name}${BASE ? "/" : ""}`;
 const PAGES = [
   "dashboard",
