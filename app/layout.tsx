@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
 import "@/app/globals.css";
 import { ServiceWorkerRegister } from "@/components/service-worker-register";
+import { publicPath } from "@/lib/base-path";
 export const metadata: Metadata = {
   title: { default: "KOPILKA", template: "%s · KOPILKA" },
   description: "Персональная финансовая операционная система",
   applicationName: "KOPILKA",
-  icons: { apple: "/icons/apple-touch-icon.png" },
+  icons: { apple: publicPath("/icons/apple-touch-icon.png") },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "KOPILKA" },
 };
 export const viewport: Viewport = {

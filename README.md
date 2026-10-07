@@ -138,3 +138,18 @@ CSV экранирует ячейки и нейтрализует spreadsheet fo
 5. **AI и Premium:** серверные агрегаты и безопасные tools, явное согласие на передачу агрегатов, feature flags, подписка. Никаких выдуманных финансовых цифр.
 
 Подробности исходного аудита: [docs/AUDIT.md](docs/AUDIT.md).
+
+### GitHub Pages
+
+`npm run build:pages` creates a static export in `out/`, mounted at `/kopilka/`.
+The build runs in an isolated temporary copy: inactive auth/server adapters are
+excluded from the export while the canonical source remains intact. No Supabase
+or server secrets are needed. The PWA manifest, icons and service worker use the
+project base path. Set `NEXT_PUBLIC_BASE_PATH` to change the project name.
+
+`.github/workflows/pages.yml` checks the application, builds it and deploys the
+artifact using GitHub Actions on pushes to `main` or `feature/local-app`.
+Repository Settings → Pages → Source must be **GitHub Actions**.
+Expected address: https://iliavsevolodov.github.io/kopilka/.
+Personal data is stored separately in each browser/origin; JSON backup can move
+it between preview hosting and GitHub Pages.
