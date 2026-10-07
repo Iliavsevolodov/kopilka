@@ -200,6 +200,7 @@ test("installed shell reloads offline and stores a new expense", async ({
     .getByRole("dialog")
     .getByRole("button", { name: "Сохранить", exact: true })
     .click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   expect((await state(page)).transactions[0].amountMinor).toBe(50000);
   await context.setOffline(false);
 });
