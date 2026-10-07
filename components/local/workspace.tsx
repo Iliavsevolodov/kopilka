@@ -41,7 +41,7 @@ export function Workspace({ children }: { children: ReactNode }) {
 }
 function Shell({ children }: { children: ReactNode }) {
   const { state, ready, error, personal } = useFinance(),
-    path = usePathname();
+    path = usePathname().replace(/\/$/, "") || "/";
   const [form, setForm] = useState<FormKind | null>(null);
   if (!ready)
     return (
