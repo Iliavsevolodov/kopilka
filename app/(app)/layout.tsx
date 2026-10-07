@@ -1,1 +1,2 @@
-import{redirect}from"next/navigation";import{AppShell}from"@/components/app-shell";import{isSupabaseConfigured}from"@/lib/env";import{createClient}from"@/lib/supabase/server";export const dynamic="force-dynamic";export default async function Layout({children}:{children:React.ReactNode}){if(!isSupabaseConfigured())redirect("/");const s=await createClient();const{data}=await s.auth.getClaims();if(!data?.claims?.sub)redirect("/login");return <AppShell>{children}</AppShell>;}
+import { Workspace } from '@/components/local/workspace';
+export default function Layout({children}:{children:React.ReactNode}) {return <Workspace>{children}</Workspace>;}

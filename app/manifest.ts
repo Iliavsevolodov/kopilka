@@ -1,1 +1,35 @@
-import type{MetadataRoute}from"next";export default function manifest():MetadataRoute.Manifest{return{name:"KOPILKA — личные финансы",short_name:"KOPILKA",description:"Персональная финансовая операционная система",start_url:"/dashboard",display:"standalone",background_color:"#f5f7f6",theme_color:"#14a36f",lang:"ru",orientation:"portrait-primary",icons:[{src:"/icon.svg",sizes:"any",type:"image/svg+xml",purpose:"any"},{src:"/icon.svg",sizes:"any",type:"image/svg+xml",purpose:"maskable"}]};}
+import type { MetadataRoute } from "next";
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    id: "/",
+    name: "KOPILKA — личные финансы",
+    short_name: "Копилка",
+    description: "Ваши деньги. Ваше завтра.",
+    start_url: "/dashboard",
+    scope: "/",
+    display: "standalone",
+    background_color: "#f6f7f9",
+    theme_color: "#236a54",
+    lang: "ru",
+    icons: [
+      {
+        src: "/icons/icon-192.png",
+        sizes: "192x192",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "any",
+      },
+      {
+        src: "/icons/icon-512.png",
+        sizes: "512x512",
+        type: "image/png",
+        purpose: "maskable",
+      },
+    ],
+  };
+}

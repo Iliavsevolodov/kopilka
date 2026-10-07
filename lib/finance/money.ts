@@ -1,4 +1,30 @@
-const MONEY_PATTERN=/^([+-]?)(\d+)(?:[.,](\d{1,2}))?$/;
-export function parseMajorToMinor(raw:string){const normalized=raw.replace(/\s/g,"");const match=MONEY_PATTERN.exec(normalized);if(!match)throw new Error("Введите корректную сумму");const[,sign,whole,fraction=""]=match;const result=Number(whole)*100+Number(fraction.padEnd(2,"0"));const signed=sign==="-"?-result:result;if(!Number.isSafeInteger(signed))throw new Error("Сумма слишком большая");return signed;}
-export function formatMoney(amountMinor:number,currency="RUB",locale="ru-RU"){return new Intl.NumberFormat(locale,{style:"currency",currency,maximumFractionDigits:amountMinor%100===0?0:2}).format(amountMinor/100);}
-export function formatApproxMoney(amountMinor:number,currency="RUB",locale="ru-RU"){const rounded=Math.round(amountMinor/100000)*100000;return `≈${formatMoney(rounded,currency,locale)}`;}
+const MONEY_PATTERN = /^([+-]?)(\d+)(?:[.,](\d{1,2}))?$/;
+export function parseMajorToMinor(raw: string) {
+  const normalized = raw.replace(/\s/g, "");
+  const match = MONEY_PATTERN.exec(normalized);
+  if (!match) throw new Error("Введите корректную сумму");
+  const [, sign, whole, fraction = ""] = match;
+  const result = Number(whole) * 100 + Number(fraction.padEnd(2, "0"));
+  const signed = sign === "-" ? -result : result;
+  if (!Number.isSafeInteger(signed)) throw new Error("Сумма слишком большая");
+  return signed;
+}
+export function formatMoney(
+  amountMinor: number,
+  currency = "RUB",
+  locale = "ru-RU",
+) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    maximumFractionDigits: amountMinor % 100 === 0 ? 0 : 2,
+  }).format(amountMinor / 100);
+}
+export function formatApproxMoney(
+  amountMinor: number,
+  currency = "RUB",
+  locale = "ru-RU",
+) {
+  const rounded = Math.round(amountMinor / 100000) * 100000;
+  return `≈${formatMoney(rounded, currency, locale)}`;
+}

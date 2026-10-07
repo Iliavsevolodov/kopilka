@@ -13,7 +13,7 @@ export async function getDashboardData(userId:string){
   supabase.from("financial_goals").select("current_amount_minor").eq("user_id",userId).eq("is_archived",false)
  ]);
  for(const r of [profileResult,accountsResult,monthTxResult,recentResult,categoriesResult,recurringResult,goalsResult])if(r.error)throw r.error;
- const profile=profileResult.data;const accounts=accountsResult.data??[];const monthTx=monthTxResult.data??[];const upcoming=recurringResult.data??[];
+ const profile=profileResult.data;if(!profile)throw new Error("Profile not found");const accounts=accountsResult.data??[];const monthTx=monthTxResult.data??[];const upcoming=recurringResult.data??[];
  const totalBalanceMinor=calculateTotalBalance(accounts.map(a=>({id:a.id,balanceMinor:Number(a.current_balance_minor),includeInTotal:a.include_in_total})));
  const cashFlow=calculateCashFlow(monthTx.map(t=>({type:t.type,amountMinor:Number(t.amount_minor)})));
  const mandatory=monthTx.filter(t=>t.type==="expense"&&t.is_mandatory).reduce((s,t)=>s+Number(t.amount_minor),0);

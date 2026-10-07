@@ -1,4 +1,17 @@
-import type {NextRequest} from "next/server";
-import {updateSession} from "@/lib/supabase/proxy";
-export async function proxy(request:NextRequest){return updateSession(request);}
-export const config={matcher:["/((?!_next/static|_next/image|favicon.ico|sw.js|icon.svg|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)"]};
+import { NextResponse, type NextRequest } from "next/server";
+// Local-first milestone: no auth requests or backend connections.
+// Supabase integration is retained in lib/supabase for the next milestone.
+export function proxy(request: NextRequest) {
+  return NextResponse.next({ request });
+}
+export const config = {
+  matcher: [
+    "/dashboard",
+    "/transactions",
+    "/accounts",
+    "/plan",
+    "/goals",
+    "/analytics",
+    "/profile",
+  ],
+};
