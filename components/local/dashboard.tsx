@@ -105,7 +105,7 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
   );
   return (
     <>
-      <div className="page-heading">
+      <div className="page-heading dashboard-heading">
         <div>
           <div className="eyebrow">ВАШ ФИНАНСОВЫЙ ОБЗОР</div>
           <h1>
@@ -125,8 +125,10 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
               month: "long",
               timeZone: state.profile.timezone,
             }).format(new Date())}{" "}
-            <span className="heading-dot">·</span> Сегодня — хороший день для
-            ваших планов
+            <span className="greeting-tagline">
+              <span className="heading-dot">·</span> Сегодня — хороший день для
+              ваших планов
+            </span>
           </p>
         </div>
         <button
@@ -216,6 +218,32 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
               </Link>
             </section>
           </div>
+          <div className="quick-actions">
+            <button onClick={() => open("expense")}>
+              <span>
+                <ArrowUpRight />
+              </span>
+              Расход
+            </button>
+            <button onClick={() => open("income")}>
+              <span>
+                <ArrowDownLeft />
+              </span>
+              Доход
+            </button>
+            <button onClick={() => open("transfer")}>
+              <span>
+                <ArrowLeftRight />
+              </span>
+              Перевод
+            </button>
+            <button onClick={() => open("goal")}>
+              <span>
+                <Plus />
+              </span>
+              Новая цель
+            </button>
+          </div>
           <div className="flow-grid">
             <div className="card flow-card">
               <span className="flow-icon green">
@@ -289,32 +317,6 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
               </Link>
             </div>
           </section>
-          <div className="quick-actions">
-            <button onClick={() => open("expense")}>
-              <span>
-                <ArrowUpRight />
-              </span>
-              Расход
-            </button>
-            <button onClick={() => open("income")}>
-              <span>
-                <ArrowDownLeft />
-              </span>
-              Доход
-            </button>
-            <button onClick={() => open("transfer")}>
-              <span>
-                <ArrowLeftRight />
-              </span>
-              Перевод
-            </button>
-            <button onClick={() => open("goal")}>
-              <span>
-                <Plus />
-              </span>
-              Новая цель
-            </button>
-          </div>
           <section className="card transactions-card">
             <SectionTitle
               title="Последние операции"

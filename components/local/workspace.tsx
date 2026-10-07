@@ -127,6 +127,14 @@ function Shell({ children }: { children: ReactNode }) {
         </aside>
         <div className="workspace-main">
           <header className="topbar">
+            <Link
+              href="/dashboard"
+              className="mobile-wordmark"
+              aria-label="KOPILKA — главная"
+            >
+              <Sprout size={21} />
+              kopilka<span>®</span>
+            </Link>
             <span className="breadcrumb">
               Моя Копилка <span>/</span>{" "}
               <strong>
@@ -154,10 +162,10 @@ function Shell({ children }: { children: ReactNode }) {
             <div className="demo-banner">
               <span>
                 <FlaskConical size={15} />
-                Демопример с вымышленными данными — можно всё попробовать
+                Деморежим · вымышленные данные
               </span>
               <button onClick={personal}>
-                Перейти к моим финансам <ArrowUpRight size={14} />
+                Мои финансы <ArrowUpRight size={14} />
               </button>
             </div>
           )}
