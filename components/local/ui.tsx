@@ -118,6 +118,10 @@ export function Modal({
     document.body.style.overflow = "hidden";
     const resize = () => {
       const viewport = window.visualViewport;
+      if (dialog)
+        dialog.dataset.compact = String(
+          (viewport?.height ?? window.innerHeight) < 560,
+        );
       dialog?.style.setProperty(
         "--sheet-viewport",
         `${viewport?.height ?? window.innerHeight}px`,

@@ -850,3 +850,42 @@
     animation: none;
   }
 }
+@media (max-width: 767px) {
+  .modal[data-compact="true"] {
+    padding: 18px 18px 10px;
+  }
+  .modal[data-compact="true"]:before {
+    margin-bottom: 8px;
+  }
+  .modal[data-compact="true"] header {
+    margin-bottom: 8px;
+  }
+  .modal[data-compact="true"] header h2 {
+    font-size: 18px;
+  }
+  .modal[data-compact="true"] .sheet-progress {
+    display: none;
+  }
+  .modal[data-compact="true"] .sheet-form {
+    gap: 8px;
+  }
+  .modal[data-compact="true"] .sheet-fields .amount-input input {
+    min-height: 52px !important;
+  }
+  .modal[data-compact="true"] .sheet-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 8px;
+    padding-top: 8px;
+    align-items: center;
+  }
+  .modal[data-compact="true"] .sheet-footer > .error-message {
+    grid-column: 1 / -1;
+  }
+  .modal[data-compact="true"] .sheet-footer > button {
+    min-height: 42px;
+  }
+  .modal[data-compact="true"] .sheet-navigation {
+    gap: 4px;
+  }
+}

@@ -271,7 +271,7 @@ test("mobile entry sheets fit without scrolling and retain values between steps"
   await dialog.getByLabel("Комментарий").fill("Проверка шторки");
   await dialog.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(dialog.getByLabel("Сумма", { exact: true })).toHaveValue("321");
-  for (const height of [667, 420, 844]) {
+  for (const height of [667, 350, 420, 844]) {
     await page.setViewportSize({ width: 390, height });
     await expect
       .poll(() => dialog.evaluate((e) => e.scrollHeight <= e.clientHeight + 1))
