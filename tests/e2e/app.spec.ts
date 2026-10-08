@@ -257,3 +257,36 @@ test("scenario and local assistant work without modifying recorded finances", as
     await page.evaluate(() => localStorage.getItem("kopilka.demo.v1")),
   ).toBe(before);
 });
+
+test("mobile entry sheets fit without scrolling and retain values between steps", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await onboard(page);
+  await page.getByRole("button", { name: "Расход", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await expect(dialog.locator(".sheet-form")).toBeVisible();
+  await dialog.getByLabel("Сумма", { exact: true }).fill("321");
+  await dialog.getByRole("button", { name: "Далее", exact: true }).click();
+  await dialog.getByLabel("Комментарий").fill("Проверка шторки");
+  await dialog.getByRole("button", { name: "Назад", exact: true }).click();
+  await expect(dialog.getByLabel("Сумма", { exact: true })).toHaveValue("321");
+  for (const height of [667, 420, 844]) {
+    await page.setViewportSize({ width: 390, height });
+    await expect
+      .poll(() => dialog.evaluate((e) => e.scrollHeight <= e.clientHeight + 1))
+      .toBe(true);
+    await expect(
+      dialog.getByRole("button", { name: "Сохранить", exact: true }),
+    ).toBeInViewport();
+  }
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  expect((await state(page)).transactions[0].description).toBe(
+    "Проверка шторки",
+  );
+  expect((await state(page)).transactions[0].amountMinor).toBe(32100);
+  await expect
+    .poll(() => page.evaluate(() => document.body.style.position))
+    .toBe("");
+});

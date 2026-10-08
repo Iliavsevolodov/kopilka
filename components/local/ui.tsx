@@ -1,9 +1,19 @@
 "use client";
+import { SheetForm } from "./sheet-form";
 import { useFinance } from "./provider";
 import { formatMoney } from "@/lib/finance/money";
 import { ArrowUpRight, ChevronRight, X } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useId, useRef, type ReactNode } from "react";
+import {
+  Children,
+  isValidElement,
+  useEffect,
+  useId,
+  useRef,
+  type ReactNode,
+  type ReactElement,
+  type FormHTMLAttributes,
+} from "react";
 export function Money({
   value,
   currency,
@@ -95,8 +105,39 @@ export function Modal({
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const dialog = ref.current;
+    const scrollY = window.scrollY;
+    const previous = {
+      position: document.body.style.position,
+      top: document.body.style.top,
+      width: document.body.style.width,
+      overflow: document.body.style.overflow,
+    };
+    document.body.style.position = "fixed";
+    document.body.style.top = `-${scrollY}px`;
+    document.body.style.width = "100%";
+    document.body.style.overflow = "hidden";
+    const resize = () => {
+      const viewport = window.visualViewport;
+      dialog?.style.setProperty(
+        "--sheet-viewport",
+        `${viewport?.height ?? window.innerHeight}px`,
+      );
+      dialog?.style.setProperty(
+        "--sheet-bottom",
+        `${Math.max(0, window.innerHeight - (viewport?.height ?? window.innerHeight) - (viewport?.offsetTop ?? 0))}px`,
+      );
+    };
+    resize();
+    window.visualViewport?.addEventListener("resize", resize);
+    window.visualViewport?.addEventListener("scroll", resize);
     dialog?.showModal();
-    return () => dialog?.close();
+    return () => {
+      dialog?.close();
+      window.visualViewport?.removeEventListener("resize", resize);
+      window.visualViewport?.removeEventListener("scroll", resize);
+      Object.assign(document.body.style, previous);
+      window.scrollTo(0, scrollY);
+    };
   }, []);
   return (
     <dialog
@@ -105,7 +146,15 @@ export function Modal({
       className="modal"
       onCancel={onClose}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (e.target !== e.currentTarget) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        if (
+          e.clientX < rect.left ||
+          e.clientX > rect.right ||
+          e.clientY < rect.top ||
+          e.clientY > rect.bottom
+        )
+          onClose();
       }}
     >
       <header>
@@ -119,7 +168,15 @@ export function Modal({
           <X />
         </button>
       </header>
-      {children}
+      {Children.map(children, (child) =>
+        isValidElement(child) && child.type === "form" ? (
+          <SheetForm
+            form={child as ReactElement<FormHTMLAttributes<HTMLFormElement>>}
+          />
+        ) : (
+          child
+        ),
+      )}
     </dialog>
   );
 }

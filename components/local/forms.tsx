@@ -229,7 +229,6 @@ export function EntryForm({
               name="name"
               required
               maxLength={60}
-              autoFocus
               placeholder={
                 kind === "goal"
                   ? "Например, большое путешествие"
@@ -269,7 +268,6 @@ export function EntryForm({
                 name="amount"
                 inputMode="decimal"
                 required
-                autoFocus={transaction}
                 placeholder="0"
                 aria-label="Сумма"
               />
