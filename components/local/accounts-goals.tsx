@@ -263,7 +263,7 @@ export function Goals() {
             .filter((g) => g.archived)
             .map((g) => (
               <p key={g.id}>
-                {g.icon} {g.name} · резерв освобождён
+                <Glyph value={g.icon} /> {g.name} · резерв освобождён
               </p>
             ))}
         </section>

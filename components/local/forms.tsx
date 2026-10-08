@@ -1,4 +1,5 @@
 "use client";
+import { IconPicker } from "./icon-picker";
 import { useState, type FormEvent } from "react";
 import { useFinance } from "./provider";
 import { Field, Modal } from "./ui";
@@ -311,7 +312,7 @@ export function EntryForm({
               >
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
-                    {c.icon} {c.name}
+                    {c.name}
                   </option>
                 ))}
               </select>
@@ -439,15 +440,7 @@ export function EntryForm({
           </>
         )}
         {(kind === "goal" || kind === "category") && (
-          <Field label="Иконка">
-            <select name="icon">
-              {["🎯", "🌴", "🏡", "🚗", "💻", "🛒", "📚", "💰", "✨"].map(
-                (i) => (
-                  <option key={i}>{i}</option>
-                ),
-              )}
-            </select>
-          </Field>
+          <IconPicker initialValue={kind === "goal" ? "target" : "basket"} />
         )}
         {kind === "recurring" && (
           <>

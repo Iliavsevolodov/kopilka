@@ -164,7 +164,7 @@ export function demoState(): State {
       targetMinor: 50000000,
       savedMinor: 12500000,
       date: format(addDays(parseISO(now), 300), "yyyy-MM-dd"),
-      icon: "🌴",
+      icon: "palm",
       archived: false,
     },
     {
@@ -173,7 +173,7 @@ export function demoState(): State {
       targetMinor: 300000000,
       savedMinor: 8000000,
       date: format(addDays(parseISO(now), 1000), "yyyy-MM-dd"),
-      icon: "🏡",
+      icon: "home",
       archived: false,
     },
   ];

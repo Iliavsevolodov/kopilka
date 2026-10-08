@@ -1,4 +1,5 @@
 "use client";
+import { Glyph } from "./glyph";
 import { WhatIf } from "./intelligence";
 import { useState } from "react";
 import {
@@ -194,7 +195,7 @@ export function Planning() {
                 <div className="budget-item" key={b.id}>
                   <div className="section-title">
                     <h3>
-                      {c?.icon} {c?.name}
+                      <Glyph value={c?.icon ?? "other"} /> {c?.name}
                     </h3>
                     <button
                       className="text-button"

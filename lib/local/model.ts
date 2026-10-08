@@ -1,3 +1,4 @@
+import { normalizeIconId } from "@/lib/domain/icons";
 import { z } from "zod";
 import { DEFAULT_CATEGORIES } from "@/lib/domain/categories";
 const money = z.number().int().safe();
@@ -34,7 +35,7 @@ export const accountSchema = z.object({
 export const categorySchema = z.object({
   id,
   name: z.string().trim().min(1).max(60),
-  icon: z.string().max(10),
+  icon: z.string().max(64).transform(normalizeIconId),
   kind: z.enum(["income", "expense"]),
   archived: z.boolean().default(false),
 });
@@ -78,7 +79,7 @@ export const goalSchema = z
     targetMinor: positive,
     savedMinor: money.nonnegative(),
     date: dateSchema,
-    icon: z.string().max(10),
+    icon: z.string().max(64).transform(normalizeIconId),
     archived: z.boolean().default(false),
   })
   .refine((g) => g.savedMinor <= g.targetMinor, "Накоплено больше суммы цели");

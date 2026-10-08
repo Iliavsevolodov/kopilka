@@ -1,4 +1,5 @@
 "use client";
+import { CategoryEditor } from "./category-editor";
 import { DecisionAssistant } from "./intelligence";
 import { Glyph } from "./glyph";
 import { useRef, useState } from "react";
@@ -26,6 +27,7 @@ export function Profile() {
     [message, setMessage] = useState(""),
     [deleting, setDeleting] = useState(false),
     [restore, setRestore] = useState<State | null>(null);
+  const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const upload = useRef<HTMLInputElement>(null);
   return (
     <>
@@ -266,15 +268,8 @@ export function Profile() {
             <button
               key={c.id}
               className={c.archived ? "archived-category" : ""}
-              aria-label={`${c.archived ? "Показать" : "Скрыть"} категорию ${c.name}`}
-              onClick={() =>
-                void update((s) => ({
-                  ...s,
-                  categories: s.categories.map((x) =>
-                    x.id === c.id ? { ...x, archived: !x.archived } : x,
-                  ),
-                }))
-              }
+              aria-label={`Изменить категорию ${c.name}`}
+              onClick={() => setEditingCategory(c.id)}
             >
               <span>
                 <Glyph value={c.icon} size={16} />
@@ -291,10 +286,16 @@ export function Profile() {
           ))}
         </div>
         <p className="hint">
-          Нажмите на категорию, чтобы скрыть её в новых операциях или показать
-          снова. История сохранится.
+          Нажмите на категорию, чтобы изменить название, выбрать иконку или
+          скрыть её. История сохранится.
         </p>
       </section>
+      {editingCategory && (
+        <CategoryEditor
+          id={editingCategory}
+          onClose={() => setEditingCategory(null)}
+        />
+      )}
       <section className="card danger-zone">
         <h2>Удаление данных</h2>
         <p>

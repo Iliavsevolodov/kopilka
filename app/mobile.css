@@ -889,3 +889,64 @@
     gap: 4px;
   }
 }
+
+/* A single visual vocabulary for categories, with no nested scrolling. */
+.icon-picker {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.icon-picker legend {
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.icon-library {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+.icon-library button {
+  display: grid;
+  place-items: center;
+  min-height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: transparent;
+  color: inherit;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
+}
+.icon-library button[aria-pressed="true"] {
+  background: #147d6420;
+  border-color: #147d64;
+  color: #147d64;
+}
+.icon-library button:focus-visible,
+.icon-pagination button:focus-visible {
+  outline: 2px solid #147d64;
+  outline-offset: 2px;
+}
+.icon-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 11px;
+}
+.icon-pagination button {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 32px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: inherit;
+}
+.icon-pagination button:disabled {
+  opacity: 0.25;
+}

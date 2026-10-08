@@ -290,3 +290,50 @@ test("mobile entry sheets fit without scrolling and retain values between steps"
     .poll(() => page.evaluate(() => document.body.style.position))
     .toBe("");
 });
+
+test("category icons can be selected and edited without changing transactions", async ({
+  page,
+}) => {
+  await demo(page);
+  const before = await page.evaluate(
+    () => JSON.parse(localStorage.getItem("kopilka.demo.v1")!).transactions,
+  );
+  await page.goto("/profile");
+  await page
+    .getByRole("button", { name: "Изменить категорию Продукты", exact: true })
+    .click();
+  const dialog = page.getByRole("dialog");
+  await dialog
+    .getByRole("button", { name: "Иконка: Дом", exact: true })
+    .click();
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+  await page.reload();
+  const saved = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("kopilka.demo.v1")!),
+  );
+  expect(
+    saved.categories.find((c: { name: string }) => c.name === "Продукты").icon,
+  ).toBe("home");
+  expect(saved.transactions).toEqual(before);
+  await page.setViewportSize({ width: 390, height: 350 });
+  await page
+    .getByRole("button", { name: "Изменить категорию Продукты", exact: true })
+    .click();
+  await dialog.getByRole("button", { name: "Далее", exact: true }).click();
+  await expect(
+    dialog.getByRole("group", { name: "Библиотека иконок" }),
+  ).toBeVisible();
+  await expect
+    .poll(() => dialog.evaluate((e) => e.scrollHeight <= e.clientHeight + 1))
+    .toBe(true);
+  await expect(
+    dialog.getByRole("button", { name: "Следующие иконки" }),
+  ).toBeInViewport();
+  await dialog.getByRole("button", { name: "Следующие иконки" }).click();
+  await dialog
+    .getByRole("button", { name: "Иконка: Подарки", exact: true })
+    .click();
+  await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});

@@ -266,7 +266,7 @@ describe("planning calculations", () => {
         targetMinor: 5000000,
         savedMinor: 1000000,
         date: "2027-01-01",
-        icon: "🎯",
+        icon: "target",
         archived: false,
       },
     ];
