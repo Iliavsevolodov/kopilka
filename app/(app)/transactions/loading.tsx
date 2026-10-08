@@ -1,0 +1,1 @@
+export default function Loading(){return <div className="mx-auto max-w-5xl animate-pulse"><div className="h-12 w-52 rounded-xl bg-[var(--surface-muted)]"/><div className="mt-6 h-96 rounded-3xl bg-[var(--surface-muted)]"/><div className="mt-5 h-80 rounded-3xl bg-[var(--surface-muted)]"/></div>}
