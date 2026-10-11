@@ -36,3 +36,4 @@ pnpm-debug.log*
 *.tsbuildinfo
 playwright-report/
 test-results/
+services/push/*.sqlite*

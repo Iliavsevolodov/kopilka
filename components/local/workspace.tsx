@@ -1,6 +1,8 @@
 "use client";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import Link from "next/link";
+import { NotificationBell } from "./notifications";
+import { PushSync } from "./push-settings";
 import { ConnectionStatus } from "./connection-status";
 import { usePathname } from "next/navigation";
 import {
@@ -62,7 +64,15 @@ function Shell({ children }: { children: ReactNode }) {
           onClick={() =>
             download(
               "kopilka-recovery.json",
-              JSON.stringify({ ...localStorage }),
+              JSON.stringify(
+                Object.fromEntries(
+                  Object.entries(localStorage).filter(
+                    ([key]) =>
+                      key.startsWith("kopilka.") &&
+                      !key.startsWith("kopilka.push."),
+                  ),
+                ),
+              ),
             )
           }
         >
@@ -140,13 +150,18 @@ function Shell({ children }: { children: ReactNode }) {
               Моя Копилка <span>/</span>{" "}
               <strong>
                 {nav.find((n) => n.href === path)?.label ??
-                  (path === "/assistant" ? "Помощник" : "Профиль")}
+                  (path === "/notifications"
+                    ? "Уведомления"
+                    : path === "/assistant"
+                      ? "Помощник"
+                      : "Профиль")}
               </strong>
             </span>
             <Link href="/transactions" className="top-search">
               <Search size={16} />
               Поиск операций
             </Link>
+            <NotificationBell />
             <span className="local-badge">
               <span className="status-dot" />
               {state.mode === "demo" ? "Демопример" : "На этом устройстве"}
@@ -171,6 +186,7 @@ function Shell({ children }: { children: ReactNode }) {
             </div>
           )}
           <ConnectionStatus />
+          <PushSync />
           <main className="page-content">{children}</main>
         </div>
         <nav className="mobile-nav" aria-label="Нижняя навигация">

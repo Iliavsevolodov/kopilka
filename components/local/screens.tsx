@@ -1,4 +1,5 @@
 "use client";
+import { Notifications } from "./notifications";
 import { Dashboard } from "./dashboard";
 import { Transactions } from "./transactions";
 import { Planning } from "./planning";
@@ -9,6 +10,8 @@ import { useEntry } from "./workspace";
 export function Screen({ name }: { name: string }) {
   const open = useEntry();
   switch (name) {
+    case "notifications":
+      return <Notifications />;
     case "transactions":
       return <Transactions />;
     case "plan":

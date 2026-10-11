@@ -32,6 +32,10 @@ export function switchMode(mode: "personal" | "demo", seed?: State) {
   window.dispatchEvent(new Event(CHANGE));
 }
 export function clearPersonal() {
+  if (localStorage.getItem("kopilka.push.device.v1"))
+    void import("./push-client")
+      .then((m) => m.disconnectPush())
+      .catch(() => {});
   localStorage.removeItem(PERSONAL);
   localStorage.removeItem(DEMO);
   localStorage.removeItem(MODE);

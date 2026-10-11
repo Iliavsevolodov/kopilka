@@ -1,6 +1,6 @@
 /* Cache only public local-first shells. Scope isolates project-site caches. */
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, "");
-const CACHE = `kopilka-local-v9-${BASE}`;
+const CACHE = `kopilka-local-v10-${BASE}`;
 const route = (name) => `${BASE}/${name}${BASE ? "/" : ""}`;
 const PAGES = [
   "dashboard",
@@ -12,6 +12,7 @@ const PAGES = [
   "profile",
   "assistant",
   "offline",
+  "notifications",
 ].map(route);
 const ASSETS = [
   "/icon.svg",
@@ -103,4 +104,39 @@ self.addEventListener("fetch", (event) => {
         ),
     );
   }
+});
+
+// Push payloads contain no financial details. Navigation stays inside this app.
+self.addEventListener("push", (event) => {
+  event.waitUntil(
+    self.registration.showNotification("KOPILKA", {
+      body: "Есть финансовые события, требующие внимания. Откройте приложение для проверки.",
+      icon: `${BASE}/icons/icon-192.png`,
+      badge: `${BASE}/icons/icon-192.png`,
+      tag: "kopilka-financial-reminder",
+      data: { url: route("notifications") },
+    }),
+  );
+});
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  event.waitUntil(
+    (async () => {
+      const target = new URL(route("notifications"), self.location.origin).href;
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of windows) {
+        if (
+          client.url.startsWith(self.registration.scope) &&
+          "focus" in client
+        ) {
+          await client.navigate(target);
+          return client.focus();
+        }
+      }
+      return self.clients.openWindow(target);
+    })(),
+  );
 });

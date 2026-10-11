@@ -17,6 +17,7 @@ try {
       return (
         ![
           "node_modules",
+          "services",
           ".git",
           ".next",
           "out",

@@ -1,3 +1,8 @@
+import {
+  noticePreferencesSchema,
+  noticeStateSchema,
+  noticeSchema,
+} from "./notification-model";
 import { normalizeIconId } from "@/lib/domain/icons";
 import { z } from "zod";
 import { DEFAULT_CATEGORIES } from "@/lib/domain/categories";
@@ -128,6 +133,9 @@ export const stateSchema = z.object({
   goals: z.array(goalSchema),
   recurring: z.array(recurringSchema),
   resolved: z.array(z.string()),
+  noticePreferences: noticePreferencesSchema.optional(),
+  noticeStates: z.record(z.string(), noticeStateSchema).optional(),
+  noticeHistory: z.array(noticeSchema).max(200).optional(),
   dismissedAttention: z.array(z.string()).optional(),
 });
 export type State = z.infer<typeof stateSchema>;

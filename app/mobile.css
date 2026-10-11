@@ -1661,3 +1661,183 @@ textarea::selection {
 .brand-file .btn-secondary {
   font-size: 12px;
 }
+/* Notification center uses the same local-first design system. */
+.notification-bell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--surface);
+  color: var(--foreground);
+}
+.notification-bell span {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  background: var(--accent-strong);
+  color: white;
+  border-radius: 9px;
+  font-size: 10px;
+  display: grid;
+  place-items: center;
+}
+.notice-delivery {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  margin-bottom: 18px;
+}
+.notice-delivery > svg {
+  flex-shrink: 0;
+  color: var(--accent-strong);
+}
+.notice-delivery p,
+.notice-item p,
+.push-settings p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.notice-settings {
+  margin-bottom: 20px;
+}
+.notice-settings h2 {
+  font-size: 19px;
+  margin-bottom: 15px;
+}
+.notice-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+}
+.notice-toggle small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+}
+.notice-toggle input {
+  flex-shrink: 0;
+}
+.notice-settings .report-filter-grid {
+  margin-top: 20px;
+}
+.push-settings {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.notice-toolbar {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  margin: 20px 0;
+}
+.notice-list {
+  display: grid;
+  gap: 12px;
+}
+.notice-item {
+  display: flex;
+  gap: 14px;
+}
+.notice-item > div {
+  min-width: 0;
+  flex: 1;
+}
+.notice-item h2 {
+  font-size: 17px;
+  margin: 6px 0;
+  overflow-wrap: anywhere;
+}
+.notice-item small {
+  color: var(--muted);
+  font-size: 11px;
+}
+.notice-symbol {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 13px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  flex-shrink: 0;
+}
+.notice-critical .notice-symbol,
+.notice-warning .notice-symbol {
+  background: #c8801518;
+  color: #a06617;
+}
+.notice-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+.notice-actions .text-button {
+  display: inline-flex;
+  gap: 5px;
+  align-items: center;
+  font-size: 12px;
+  min-height: 36px;
+}
+.notice-item p {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 767px) {
+  .notice-item {
+    padding: 17px;
+    gap: 10px;
+  }
+  .notice-item h2 {
+    font-size: 16px;
+  }
+  .notice-symbol {
+    width: 32px;
+    height: 32px;
+  }
+  .notice-delivery {
+    padding: 17px;
+  }
+  .notification-bell {
+    margin-left: auto;
+  }
+  .notice-settings .report-filter-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .notice-toolbar .period-tabs {
+    max-width: 100%;
+    flex-wrap: wrap;
+  }
+}
+@media (max-width: 767px) {
+  .page-heading.notice-heading {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  .notice-heading > .btn-secondary {
+    max-width: 100%;
+    white-space: normal;
+  }
+  .notice-heading > div {
+    min-width: 0;
+    width: 100%;
+  }
+}
