@@ -1,0 +1,16 @@
+{
+  "name": "kopilka-push-service",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "keys": "web-push generate-vapid-keys --json",
+    "test": "node --test *.test.mjs"
+  },
+  "dependencies": {
+    "web-push": "3.6.7"
+  }
+}

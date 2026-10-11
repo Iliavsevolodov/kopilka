@@ -31,3 +31,9 @@ pnpm-debug.log*
 
 # Supabase
 .supabase/
+
+# Generated checks
+*.tsbuildinfo
+playwright-report/
+test-results/
+services/push/*.sqlite*
