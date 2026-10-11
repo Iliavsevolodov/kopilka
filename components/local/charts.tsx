@@ -127,9 +127,11 @@ export function BalanceChart({
 export function Donut({
   items,
   total,
+  caption = "в этом месяце",
 }: {
   items: { name: string; amount: number }[];
   total: number;
+  caption?: string;
 }) {
   const { state } = useFinance();
   return (
@@ -184,7 +186,7 @@ export function Donut({
             ? "••••••"
             : formatMoney(total, state.profile.currency)}
         </strong>
-        <span>в этом месяце</span>
+        <span>{caption}</span>
       </div>
     </div>
   );

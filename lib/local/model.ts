@@ -51,7 +51,18 @@ export const transactionSchema = z
     description: z.string().max(300),
     mandatory: z.boolean(),
     impulsive: z.boolean(),
-    source: z.enum(["manual", "demo", "recurring"]),
+    source: z.enum(["manual", "demo", "recurring", "csv"]),
+    needsReview: z.boolean().optional(),
+    merchant: z.string().trim().max(100).optional(),
+    tags: z.array(z.string().trim().min(1).max(40)).max(12).optional(),
+    allocations: z
+      .array(z.object({ categoryId: id, amountMinor: positive }))
+      .min(2)
+      .max(10)
+      .optional(),
+    refundOf: id.optional(),
+    externalId: z.string().max(150).optional(),
+    importBatchId: id.optional(),
     recurringKey: z.string().optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime().optional(),
@@ -117,6 +128,7 @@ export const stateSchema = z.object({
   goals: z.array(goalSchema),
   recurring: z.array(recurringSchema),
   resolved: z.array(z.string()),
+  dismissedAttention: z.array(z.string()).optional(),
 });
 export type State = z.infer<typeof stateSchema>;
 export type Account = z.infer<typeof accountSchema>;

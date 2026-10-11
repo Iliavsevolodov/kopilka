@@ -1,4 +1,6 @@
 "use client";
+import { BrandSelect, BrandDate, BrandColor } from "./branded-controls";
+import { parseTags } from "@/lib/local/ledger";
 import { IconPicker } from "./icon-picker";
 import { useState, type FormEvent } from "react";
 import { useFinance } from "./provider";
@@ -93,6 +95,7 @@ export function EntryForm({
         if (transaction) {
           const t: Transaction = {
             id: initial?.id ?? id,
+            ...initial,
             updatedAt: initial?.updatedAt,
             type: kind as Transaction["type"],
             amountMinor: amount(),
@@ -105,6 +108,9 @@ export function EntryForm({
                 : undefined,
             date: str("date"),
             description: str("description"),
+            needsReview: false,
+            tags: parseTags(str("tags")),
+            merchant: str("merchant"),
             mandatory: str("behavior") === "mandatory",
             impulsive: str("behavior") === "impulsive",
             source: "manual",
@@ -240,13 +246,13 @@ export function EntryForm({
         )}
         {["recurring", "category"].includes(kind) && (
           <Field label="Тип">
-            <select
+            <BrandSelect
               value={type}
               onChange={(e) => setType(e.target.value as typeof type)}
             >
               <option value="expense">Расход</option>
               <option value="income">Доход</option>
-            </select>
+            </BrandSelect>
           </Field>
         )}
         {kind !== "category" && (
@@ -271,6 +277,7 @@ export function EntryForm({
                 required
                 placeholder="0"
                 aria-label="Сумма"
+                readOnly={!!initial?.allocations}
               />
               <span>
                 {state.accounts.find((a) => a.id === selectedAccount)
@@ -284,44 +291,60 @@ export function EntryForm({
           kind === "budget" ||
           kind === "recurring") && (
           <>
-            {(kind === "expense" || kind === "income") && (
-              <div
-                className="favorite-categories"
-                role="group"
-                aria-label="Частые категории"
-              >
-                {favorites.map((c) => (
-                  <button
-                    type="button"
-                    key={c.id}
-                    className={selectedCategory === c.id ? "selected" : ""}
-                    aria-pressed={selectedCategory === c.id}
-                    onClick={() => setSelectedCategory(c.id)}
-                  >
-                    {c.name}
-                  </button>
-                ))}
+            {(kind === "expense" || kind === "income") &&
+              !initial?.allocations && (
+                <div
+                  className="favorite-categories"
+                  role="group"
+                  aria-label="Частые категории"
+                >
+                  {favorites.map((c) => (
+                    <button
+                      type="button"
+                      key={c.id}
+                      className={selectedCategory === c.id ? "selected" : ""}
+                      aria-pressed={selectedCategory === c.id}
+                      onClick={() => setSelectedCategory(c.id)}
+                    >
+                      {c.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            {initial?.allocations ? (
+              <div>
+                <input
+                  type="hidden"
+                  name="category"
+                  value={initial.categoryId}
+                />
+                <p className="hint">
+                  Покупка разделена на {initial.allocations.length} категории.
+                  Распределение меняется через «Действия с покупкой → Разделить
+                  по категориям».
+                </p>
               </div>
+            ) : (
+              <Field label="Категория">
+                <BrandSelect
+                  name="category"
+                  required
+                  value={selectedCategory || categories[0]?.id || ""}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                >
+                  {categories.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.name}
+                    </option>
+                  ))}
+                </BrandSelect>
+              </Field>
             )}
-            <Field label="Категория">
-              <select
-                name="category"
-                required
-                value={selectedCategory || categories[0]?.id || ""}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-              >
-                {categories.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.name}
-                  </option>
-                ))}
-              </select>
-            </Field>
           </>
         )}
         {(transaction || kind === "recurring") && (
           <Field label={kind === "transfer" ? "Со счёта" : "Счёт"}>
-            <select
+            <BrandSelect
               name="account"
               required
               value={selectedAccount}
@@ -332,12 +355,12 @@ export function EntryForm({
                   {a.name} · {a.currency}
                 </option>
               ))}
-            </select>
+            </BrandSelect>
           </Field>
         )}
         {kind === "transfer" && (
           <Field label="На счёт">
-            <select
+            <BrandSelect
               name="destination"
               required
               defaultValue={initial?.destinationAccountId ?? accounts[1]?.id}
@@ -347,7 +370,7 @@ export function EntryForm({
                   {a.name} · {a.currency}
                 </option>
               ))}
-            </select>
+            </BrandSelect>
           </Field>
         )}
         {(transaction || kind === "goal" || kind === "recurring") && (
@@ -360,9 +383,8 @@ export function EntryForm({
                   : "Дата"
             }
           >
-            <input
+            <BrandDate
               name="date"
-              type="date"
               required
               defaultValue={initial?.date ?? today(state.profile.timezone)}
               max={transaction ? today(state.profile.timezone) : undefined}
@@ -381,7 +403,7 @@ export function EntryForm({
         )}
         {kind === "expense" && (
           <Field label="Характер расхода">
-            <select
+            <BrandSelect
               name="behavior"
               defaultValue={
                 initial?.mandatory
@@ -394,14 +416,14 @@ export function EntryForm({
               <option value="normal">Обычный</option>
               <option value="mandatory">Обязательный</option>
               <option value="impulsive">Импульсивный</option>
-            </select>
+            </BrandSelect>
           </Field>
         )}
         {kind === "account" && (
           <>
             <div className="form-grid">
               <Field label="Тип счёта">
-                <select name="accountType">
+                <BrandSelect name="accountType">
                   <option value="card">Карта / банковский счёт</option>
                   <option value="cash">Наличные</option>
                   <option value="savings">Накопительный</option>
@@ -409,18 +431,21 @@ export function EntryForm({
                   <option value="investment">Инвестиционный</option>
                   <option value="wallet">Электронный кошелёк</option>
                   <option value="other">Другое</option>
-                </select>
+                </BrandSelect>
               </Field>
               <Field label="Валюта">
-                <select name="currency" defaultValue={state.profile.currency}>
+                <BrandSelect
+                  name="currency"
+                  defaultValue={state.profile.currency}
+                >
                   {["RUB", "USD", "EUR"].map((c) => (
                     <option key={c}>{c}</option>
                   ))}
-                </select>
+                </BrandSelect>
               </Field>
             </div>
             <Field label="Цвет счёта">
-              <input name="color" type="color" defaultValue="#19765f" />
+              <BrandColor name="color" defaultValue="#19765f" />
             </Field>
             <label className="check">
               <input type="checkbox" name="include" defaultChecked />
@@ -437,6 +462,34 @@ export function EntryForm({
               Это резерв из денег на ваших счетах, а не новый доход. Резерв цели
               не должен включать финансовую подушку.
             </p>
+          </>
+        )}
+        {transaction && (
+          <>
+            <Field
+              label={
+                kind === "income" ? "Источник дохода" : "Магазин / получатель"
+              }
+            >
+              <input
+                name="merchant"
+                maxLength={100}
+                defaultValue={initial?.merchant}
+                placeholder={
+                  kind === "income"
+                    ? "Например, Greenway"
+                    : "Например, Пятёрочка"
+                }
+              />
+            </Field>
+            <Field label="Теги через запятую">
+              <input
+                name="tags"
+                defaultValue={initial?.tags?.join(", ")}
+                placeholder="Отпуск, Ремонт, Работа"
+                maxLength={490}
+              />
+            </Field>
           </>
         )}
         {(kind === "goal" || kind === "category") && (

@@ -1,4 +1,5 @@
 "use client";
+import { attentionItems } from "@/lib/local/attention";
 import { Glyph } from "./glyph";
 
 import Link from "next/link";
@@ -59,7 +60,14 @@ export function TransactionRows({
                     : "Корректировка")}
               </strong>
               <small>
-                {c?.name ?? "Между своими счетами"} · {a?.name}
+                {t.refundOf
+                  ? "Возврат покупки"
+                  : t.allocations
+                    ? `${t.allocations.length} категории`
+                    : (c?.name ?? "Между своими счетами")}{" "}
+                · {a?.name}
+                {t.merchant ? ` · ${t.merchant}` : ""}
+                {t.tags?.length ? ` · ${t.tags.join(", ")}` : ""}
                 {t.type === "transfer"
                   ? ` → ${state.accounts.find((a) => a.id === t.destinationAccountId)?.name}`
                   : ""}
@@ -105,6 +113,9 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
   );
   return (
     <>
+      <Link className="attention-link" href="/profile#attention">
+        Требует внимания: {attentionItems(state).length} · Проверить данные →
+      </Link>
       <div className="page-heading dashboard-heading">
         <div>
           <div className="eyebrow">ВАШ ФИНАНСОВЫЙ ОБЗОР</div>
@@ -205,6 +216,9 @@ export function Dashboard({ open }: { open: (kind: FormKind) => void }) {
                 <ShieldCheck size={22} />
               </span>
               <div className="safe-title">Можно потратить</div>
+              <Link className="text-button" href="/plan#safe-to-spend">
+                Расшифровка расчёта →
+              </Link>
               <strong className="safe-amount">
                 <Money value={m.safe} />
               </strong>

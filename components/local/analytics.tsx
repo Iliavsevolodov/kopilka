@@ -1,38 +1,108 @@
 "use client";
-import { FinancialHealth, PeriodComparison } from "./intelligence";
+import { useState } from "react";
 import Link from "next/link";
+import { addDays, differenceInCalendarDays, format, parseISO } from "date-fns";
 import { useFinance } from "./provider";
-import { metrics, historyPoints } from "@/lib/local/finance";
 import { Money, SectionTitle, Empty } from "./ui";
 import { BalanceChart, Donut, chartColors } from "./charts";
 import { today } from "@/lib/local/model";
-import { addDays, format, parseISO, subMonths } from "date-fns";
+import {
+  report,
+  priorRange,
+  defaultFilter,
+  validRange,
+  transactionsHref,
+  type Period,
+  type ReportFilter,
+} from "@/lib/local/reports";
+import { historyPoints, budgetMetrics } from "@/lib/local/finance";
+import { ReportFilters } from "./report-filters";
+import { Glyph } from "./glyph";
+
 export function Analytics() {
   const { state } = useFinance();
-  const m = metrics(state);
-  const asOf = today(state.profile.timezone);
-  const months = Array.from({ length: 6 }, (_, i) =>
-    format(subMonths(parseISO(asOf), 5 - i), "yyyy-MM"),
-  );
-  const flows = months.map((month) => ({
-    month,
-    income: m.currencyTx
-      .filter((t) => t.date.startsWith(month) && t.type === "income")
-      .reduce((n, t) => n + t.amountMinor, 0),
-    expense: m.currencyTx
-      .filter((t) => t.date.startsWith(month) && t.type === "expense")
-      .reduce((n, t) => n + t.amountMinor, 0),
-  }));
-  const maximum = Math.max(1, ...flows.flatMap((f) => [f.income, f.expense]));
-  const heat = Array.from({ length: 91 }, (_, i) => {
-    const date = format(addDays(parseISO(asOf), i - 90), "yyyy-MM-dd");
+  const [settings, setSettings] = useState<{
+    filter: ReportFilter;
+    period: Period;
+  }>(() => {
+    try {
+      const raw = JSON.parse(
+        sessionStorage.getItem(`kopilka.reports.${state.mode}`) || "null",
+      );
+      if (
+        raw &&
+        ["week", "month", "quarter", "year", "custom"].includes(raw.period) &&
+        Object.values(raw.filter).every((v) => typeof v === "string") &&
+        validRange(raw.filter.from, raw.filter.to)
+      )
+        return raw;
+    } catch {}
     return {
-      date,
-      amount: m.currencyTx
-        .filter((t) => t.date === date && t.type === "expense")
-        .reduce((n, t) => n + t.amountMinor, 0),
+      filter: defaultFilter(today(state.profile.timezone)),
+      period: "month",
     };
   });
+  const { filter, period } = settings;
+  function change(filter: ReportFilter, period: Period) {
+    setSettings({ filter, period });
+    try {
+      sessionStorage.setItem(
+        `kopilka.reports.${state.mode}`,
+        JSON.stringify({ filter, period }),
+      );
+    } catch {}
+  }
+  const valid =
+    validRange(filter.from, filter.to) &&
+    filter.to <= today(state.profile.timezone);
+  const range = valid ? filter : defaultFilter(today(state.profile.timezone));
+  const current = report(state, range),
+    previous = report(state, {
+      ...range,
+      ...priorRange(period, range.from, range.to),
+    });
+  const diff = current.flow.expensesMinor - previous.flow.expensesMinor;
+  const expenses = current.categories.filter((c) => c.kind === "expense"),
+    positive = expenses.filter((c) => c.amount > 0);
+  const totalPositive = positive.reduce((n, c) => n + c.amount, 0);
+  const category = state.categories.find((c) => c.id === filter.category);
+  const budget = state.budgets.find((b) => b.categoryId === category?.id);
+  const merchants = [
+    ...new Set(current.entries.map((t) => t.merchant || "Не указан")),
+  ]
+    .map((name) => ({
+      name,
+      amount: current.entries
+        .filter(
+          (t) =>
+            (t.merchant || "Не указан") === name &&
+            t.type === (category?.kind ?? "expense"),
+        )
+        .reduce((n, t) => n + t.amountMinor, 0),
+    }))
+    .sort((a, b) => b.amount - a.amount);
+  const largest = current.entries
+    .filter(
+      (t) => t.amountMinor > 0 && t.type === (category?.kind ?? "expense"),
+    )
+    .sort((a, b) => b.amountMinor - a.amountMinor)
+    .slice(0, 5);
+  const max = Math.max(
+    1,
+    ...current.flows.flatMap((f) => [f.income, f.expense]),
+  );
+  const heat = Array.from(
+    {
+      length: Math.min(
+        366,
+        differenceInCalendarDays(parseISO(range.to), parseISO(range.from)) + 1,
+      ),
+    },
+    (_, i) => {
+      const date = format(addDays(parseISO(range.from), i), "yyyy-MM-dd");
+      return { date, amount: current.byDate.get(date) ?? 0 };
+    },
+  );
   const maxHeat = Math.max(1, ...heat.map((d) => d.amount));
   return (
     <>
@@ -40,181 +110,287 @@ export function Analytics() {
         <div>
           <div className="eyebrow">ОТ ЦИФР К ПОНИМАНИЮ</div>
           <h1>Ваши финансовые привычки</h1>
-          <p>
-            Фактические операции в {state.profile.currency} · переводы исключены
-          </p>
+          <p>Выберите период и проследите каждую цифру до операции</p>
         </div>
-        <span className="period-label">
-          {new Intl.DateTimeFormat("ru-RU", {
-            month: "long",
-            year: "numeric",
-          }).format(new Date())}
-        </span>
       </div>
-      <div className="planning-grid">
-        <FinancialHealth />
-        <PeriodComparison />
-      </div>
-      {!state.transactions.length ? (
-        <section className="card">
-          <Empty
-            title="Ваша история ещё впереди"
-            text="Добавьте операции, чтобы увидеть структуру расходов, динамику и привычки."
-            action={
-              <Link className="btn-primary" href="/transactions">
-                Перейти к операциям
-              </Link>
-            }
-          />
-        </section>
+      <ReportFilters filter={filter} period={period} onChange={change} />
+      {!valid ? (
+        <p role="alert">
+          Выберите корректный период до сегодняшней даты, не длиннее 10 лет.
+        </p>
       ) : (
         <>
           <div className="analytics-stats">
             <section className="card">
-              <small>Расходы за текущий месяц</small>
+              <small>Доходы за период</small>
               <strong className="big-number">
-                <Money value={m.flow.expensesMinor} />
+                <Money value={current.flow.incomeMinor} />
               </strong>
-              <p className="muted">Фактические расходы с начала месяца</p>
+              <p className="hint">Возвраты покупок не считаются заработком</p>
             </section>
             <section className="card">
-              <small>Чистый денежный поток</small>
+              <small>Чистые расходы</small>
               <strong className="big-number">
-                <Money value={m.flow.netMinor} />
+                <Money value={current.flow.expensesMinor} />
               </strong>
-              <p className="muted">Доходы минус расходы</p>
+              <p className="hint">
+                Покупки за вычетом возвратов в выбранном периоде
+              </p>
             </section>
             <section className="card">
-              <small>Финансовая подушка</small>
+              <small>Денежный поток</small>
               <strong className="big-number">
-                {m.mandatory ? `${m.cushion.toFixed(1)} мес.` : "—"}
+                <Money value={current.flow.netMinor} />
               </strong>
-              <p className="muted">
-                Накопительные счета / обязательные расходы
+              <p className="hint">
+                Доходы минус чистые расходы · переводы исключены
               </p>
             </section>
           </div>
-          <div className="planning-grid">
+          <section className="card report-summary">
+            <h2>
+              {diff > 0
+                ? "Расходы выросли"
+                : diff < 0
+                  ? "Расходы снизились"
+                  : "Расходы не изменились"}
+            </h2>
+            <p>
+              <Money value={Math.abs(diff)} /> относительно{" "}
+              {priorRange(period, range.from, range.to).from} —{" "}
+              {priorRange(period, range.from, range.to).to}
+              {previous.flow.expensesMinor > 0 && !state.profile.hidden
+                ? ` · ${Math.abs((diff / previous.flow.expensesMinor) * 100).toFixed(1)}%`
+                : ""}
+              .
+            </p>
+            <p className="hint">
+              Календарные периоды сравниваются по одинаковым прошедшим датам;
+              свой период — с предыдущим отрезком такой же длины. Отсутствие
+              записей не доказывает отсутствие расходов.
+            </p>
+            <Link className="text-button" href={transactionsHref(range)}>
+              Проверить операции за период →
+            </Link>
+          </section>
+          {category && (
+            <section className="card category-detail">
+              <div className="section-title">
+                <h2>
+                  <Glyph value={category.icon} /> {category.name}
+                </h2>
+                <button
+                  className="text-button"
+                  onClick={() => change({ ...filter, category: "" }, period)}
+                >
+                  Все категории
+                </button>
+              </div>
+              <p>
+                {
+                  new Set(
+                    current.entries
+                      .filter((t) => t.amountMinor > 0)
+                      .map((t) => t.id),
+                  ).size
+                }{" "}
+                операций · {new Set(current.entries.map((t) => t.date)).size}{" "}
+                дней с операциями
+              </p>
+              {budget && (
+                <p>
+                  Бюджет текущего месяца:{" "}
+                  <Money value={budgetMetrics(state, budget).spentMinor} /> из{" "}
+                  <Money value={budget.limitMinor} />. Остаток:{" "}
+                  <Money value={budgetMetrics(state, budget).remainingMinor} />.
+                </p>
+              )}
+              <h3>Магазины и источники</h3>
+              <div className="flow-table">
+                {merchants.slice(0, 8).map((m) => (
+                  <div key={m.name}>
+                    <span>{m.name}</span>
+                    <Money value={m.amount} />
+                  </div>
+                ))}
+              </div>
+              <h3>Крупнейшие операции</h3>
+              <div className="flow-table">
+                {largest.map((t, i) => (
+                  <Link
+                    key={`${t.id}-${i}`}
+                    href={transactionsHref({
+                      ...range,
+                      merchant: t.merchant || "",
+                    })}
+                  >
+                    <span>
+                      {t.date} · {t.merchant || t.description || category.name}
+                    </span>
+                    <Money value={t.amountMinor} />
+                  </Link>
+                ))}
+              </div>
+              <Link className="text-button" href={transactionsHref(range)}>
+                Все операции категории →
+              </Link>
+            </section>
+          )}
+          {!current.entries.length ? (
             <section className="card">
-              <SectionTitle title="Куда уходят деньги" />
-              {m.categories.length ? (
-                <>
-                  <Donut items={m.categories} total={m.flow.expensesMinor} />
+              <Empty
+                title="В этом периоде пока нет операций"
+                text="Измените фильтры или добавьте операции, чтобы увидеть картину расходов."
+                action={
+                  <Link href="/transactions" className="btn-primary">
+                    Перейти к операциям
+                  </Link>
+                }
+              />
+            </section>
+          ) : (
+            <>
+              <div className="planning-grid">
+                <section className="card">
+                  <SectionTitle title="Куда уходят деньги" />
+                  {positive.length > 0 && (
+                    <Donut
+                      items={positive}
+                      total={totalPositive}
+                      caption="за выбранный период"
+                    />
+                  )}
                   <div className="category-breakdown">
-                    {m.categories.map((c, i) => (
-                      <Link key={c.id} href="/transactions">
+                    {current.categories.map((c, i) => (
+                      <button
+                        className="report-category"
+                        key={c.id}
+                        onClick={() =>
+                          change({ ...filter, category: c.id }, period)
+                        }
+                      >
                         <span
                           className="category-color"
                           style={{
                             background: chartColors[i % chartColors.length],
                           }}
                         />
-                        <span>{c.name}</span>
+                        <span>
+                          <Glyph value={c.icon} size={16} /> {c.name}
+                        </span>
                         <strong>
                           <Money value={c.amount} />
                         </strong>
                         <small>
-                          {Math.round((c.amount / m.flow.expensesMinor) * 100)}%
+                          {c.kind === "income" ? "доход" : "расход"} →
                         </small>
-                      </Link>
+                      </button>
                     ))}
                   </div>
                   <p className="hint">
-                    Больше всего в этом месяце:{" "}
-                    {m.categories[0]?.name.toLowerCase()}.
+                    Нажмите на категорию для детализации. Круг показывает
+                    положительные расходы; категории с превышающими покупки
+                    возвратами остаются в списке.
                   </p>
-                </>
-              ) : (
-                <p className="muted">В текущем месяце пока нет расходов.</p>
-              )}
-            </section>
-            <section className="card">
-              <SectionTitle title="Доходы и расходы" />
-              <p className="muted">
-                Последние 6 месяцев · текущий месяц неполный
-              </p>
-              <div className="bar-chart">
-                {flows.map((f) => (
-                  <div className="bar-group" key={f.month}>
-                    <div className="bar-pair">
-                      <div style={{ height: `${(f.income / maximum) * 100}%` }}>
-                        <span>
-                          {state.profile.hidden
-                            ? "•••"
-                            : Math.round(f.income / 100000) + " тыс."}
-                        </span>
+                </section>
+                <section className="card">
+                  <SectionTitle title="Доходы и расходы" />
+                  <p className="muted">
+                    {range.from} — {range.to}
+                  </p>
+                  <div className="bar-chart">
+                    {current.flows.slice(-12).map((f) => (
+                      <div className="bar-group" key={f.month}>
+                        <div className="bar-pair">
+                          <div
+                            style={{
+                              height: `${(Math.max(0, f.income) / max) * 100}%`,
+                            }}
+                          />
+                          <div
+                            style={{
+                              height: `${(Math.max(0, f.expense) / max) * 100}%`,
+                            }}
+                          />
+                        </div>
+                        <small>{f.month}</small>
                       </div>
-                      <div
-                        style={{ height: `${(f.expense / maximum) * 100}%` }}
-                      >
-                        <span>
-                          {state.profile.hidden
-                            ? "•••"
-                            : Math.round(f.expense / 100000) + " тыс."}
+                    ))}
+                  </div>
+                  <p className="hint">
+                    Доходы — зелёным, расходы — бежевым. До 12 последних месяцев
+                    на графике; точные суммы за весь период ниже.
+                  </p>
+                  <div className="flow-table">
+                    {current.flows.map((f) => (
+                      <div key={f.month}>
+                        <span>{f.month}</span>
+                        <span className="positive">
+                          <Money value={f.income} />
                         </span>
+                        <Money value={f.expense} />
                       </div>
-                    </div>
-                    <small>
-                      {new Intl.DateTimeFormat("ru-RU", {
-                        month: "short",
-                      }).format(new Date(f.month + "-01"))}
-                    </small>
+                    ))}
                   </div>
-                ))}
+                </section>
               </div>
-              <div className="chart-footer">
-                <span>
-                  <i />
-                  Доходы
-                </span>
-                <span>
-                  <i style={{ background: "#cbbca0" }} />
-                  Расходы
-                </span>
-              </div>
-              <p className="hint">Точный итог за каждый месяц</p>
-              <div className="flow-table">
-                {flows.map((f) => (
-                  <div key={f.month}>
-                    <span>{f.month}</span>
-                    <span className="positive">
-                      <Money value={f.income} />
-                    </span>
-                    <span>
-                      <Money value={f.expense} />
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </section>
-          </div>
+              <section className="card">
+                <SectionTitle title="Ритм ваших расходов" />
+                <p className="muted">
+                  Первые {heat.length} дней выбранного периода. Нажмите на день
+                  для детализации.
+                </p>
+                <div className="heatmap">
+                  {heat.map((d) => (
+                    <Link
+                      key={d.date}
+                      aria-label={`Операции за ${d.date}`}
+                      href={transactionsHref({
+                        ...range,
+                        from: d.date,
+                        to: d.date,
+                      })}
+                      style={{
+                        background:
+                          d.amount > 0
+                            ? `color-mix(in srgb, #21866c ${20 + (d.amount / maxHeat) * 80}%, var(--surface-muted))`
+                            : "var(--surface-muted)",
+                      }}
+                      title={`${d.date}: ${state.profile.hidden ? "•••" : new Intl.NumberFormat("ru-RU", { style: "currency", currency: state.profile.currency }).format(d.amount / 100)}`}
+                    />
+                  ))}
+                </div>
+              </section>
+            </>
+          )}
           <section className="card chart-card">
             <SectionTitle title="Капитал в динамике" />
-            <BalanceChart points={historyPoints(state, 180)} />
-          </section>
-          <section className="card">
-            <SectionTitle title="Ритм ваших расходов" />
-            <p className="muted">
-              Последние 13 недель. Чем насыщеннее клетка, тем больше расходов за
-              день.
+            <p className="hint">
+              Все движения по выбранному счёту или счетам в общем балансе,
+              включая переводы и корректировки. Категории и теги не ограничивают
+              капитал. Последние 366 дней периода.
             </p>
-            <div className="heatmap">
-              {heat.map((d) => (
-                <div
-                  key={d.date}
-                  style={{
-                    background: d.amount
-                      ? `color-mix(in srgb, #21866c ${20 + (d.amount / maxHeat) * 80}%, var(--surface-muted))`
-                      : "var(--surface-muted)",
-                  }}
-                  title={`${d.date}: ${state.profile.hidden ? "•••" : (d.amount / 100).toLocaleString("ru-RU")} ${state.profile.currency}`}
-                />
-              ))}
-            </div>
-            <div className="chart-footer">
-              <span>{heat[0].date}</span>
-              <span>{asOf}</span>
-            </div>
+            <BalanceChart
+              points={historyPoints(
+                {
+                  ...state,
+                  accounts: state.accounts.map((a) => ({
+                    ...a,
+                    includeInTotal: filter.account
+                      ? a.id === filter.account
+                      : a.includeInTotal,
+                  })),
+                },
+                Math.min(
+                  366,
+                  differenceInCalendarDays(
+                    parseISO(range.to),
+                    parseISO(range.from),
+                  ) + 1,
+                ),
+                range.to,
+              )}
+            />
           </section>
         </>
       )}

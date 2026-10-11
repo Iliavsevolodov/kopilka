@@ -1,3 +1,4 @@
+import { reportingEntries, validateLedgerEntry } from "./ledger";
 import {
   addDays,
   differenceInCalendarDays,
@@ -37,6 +38,7 @@ export function balances(s: State) {
 }
 export function validateTransaction(s: State, t: Transaction) {
   transactionSchema.parse(t);
+  validateLedgerEntry(s, t);
   const a = s.accounts.find((a) => a.id === t.accountId && !a.archived);
   if (!a) throw new Error("Выберите доступный счёт");
   if (t.date > today(s.profile.timezone))
@@ -51,6 +53,7 @@ export function validateTransaction(s: State, t: Transaction) {
       throw new Error("Переводы между разными валютами пока недоступны");
   } else if (
     t.type !== "adjustment" &&
+    !t.refundOf &&
     !s.categories.some((c) => c.id === t.categoryId && c.kind === t.type)
   )
     throw new Error("Выберите категорию операции");
@@ -74,6 +77,11 @@ export function editTransaction(s: State, replacement: Transaction): State {
   if (!previous) throw new Error("Операция уже удалена. Обновите историю.");
   if (previous.updatedAt !== replacement.updatedAt)
     throw new Error("Операция изменена в другой вкладке. Откройте её заново.");
+  if (
+    previous.refundOf ||
+    s.transactions.some((t) => t.refundOf === previous.id)
+  )
+    throw new Error("Для изменения сначала удалите связанные возвраты");
   const next = {
     ...replacement,
     createdAt: previous.createdAt,
@@ -220,7 +228,7 @@ export function metrics(s: State, asOf = today(s.profile.timezone)) {
     liquid = included
       .filter((a) => !["deposit", "investment"].includes(a.type))
       .reduce((n, a) => n + a.balanceMinor, 0);
-  const currencyTx = s.transactions.filter(
+  const currencyTx = reportingEntries(s).filter(
     (t) =>
       s.accounts.find((a) => a.id === t.accountId)?.currency ===
       s.profile.currency,
@@ -248,7 +256,7 @@ export function metrics(s: State, asOf = today(s.profile.timezone)) {
     .filter((t) => t.type === "expense" && !t.recurringKey && !t.mandatory)
     .reduce((n, t) => n + t.amountMinor, 0);
   const dailyVariable = history.length
-    ? Math.round(variableHistory / (months * 30.44))
+    ? Math.max(0, Math.round(variableHistory / (months * 30.44)))
     : Math.round(
         (Math.max(0, s.profile.monthlyIncomeMinor - s.profile.mandatoryMinor) *
           0.5) /
@@ -302,6 +310,7 @@ export function metrics(s: State, asOf = today(s.profile.timezone)) {
     reserve,
     reserved,
     obligations,
+    nextIncome,
     mandatory,
     savings,
     cushion: mandatory ? savings / mandatory : 0,

@@ -82,7 +82,8 @@ export function behaviorProfile(s: State, asOf = today(s.profile.timezone)) {
       ? ((currentMinor - previousMinor) / previousMinor) * 100
       : null,
     impulseMinor: sum(impulsive),
-    impulseCount: impulsive.length,
+    impulseCount: new Set(impulsive.filter((t) => !t.refundOf).map((t) => t.id))
+      .size,
     impulseRatio: currentMinor ? (sum(impulsive) / currentMinor) * 100 : 0,
   };
 }

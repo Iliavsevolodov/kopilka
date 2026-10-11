@@ -1,6 +1,8 @@
 "use client";
+import { BrandSelect } from "./branded-controls";
+import { Attention } from "./attention";
 import { CategoryEditor } from "./category-editor";
-import { DecisionAssistant } from "./intelligence";
+import { FinancialHealth, DecisionAssistant } from "./intelligence";
 import { Glyph } from "./glyph";
 import { useRef, useState } from "react";
 import Link from "next/link";
@@ -116,18 +118,21 @@ export function Profile() {
             </Field>
             <div className="form-grid">
               <Field label="Основная валюта">
-                <select name="currency" defaultValue={state.profile.currency}>
+                <BrandSelect
+                  name="currency"
+                  defaultValue={state.profile.currency}
+                >
                   {["RUB", "USD", "EUR"].map((c) => (
                     <option key={c}>{c}</option>
                   ))}
-                </select>
+                </BrandSelect>
               </Field>
               <Field label="Тема">
-                <select name="theme" defaultValue={state.profile.theme}>
+                <BrandSelect name="theme" defaultValue={state.profile.theme}>
                   <option value="system">Как на устройстве</option>
                   <option value="light">Светлая</option>
                   <option value="dark">Тёмная</option>
-                </select>
+                </BrandSelect>
               </Field>
             </div>
             <p className="hint">
@@ -255,6 +260,8 @@ export function Profile() {
           </section>
         </div>
       </div>
+      <FinancialHealth />
+      <Attention />
       <section className="card categories-card">
         <div className="section-title">
           <h2>Категории</h2>

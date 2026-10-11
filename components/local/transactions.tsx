@@ -1,5 +1,10 @@
 "use client";
-import { useState } from "react";
+import { BrandSelect, BrandDate } from "./branded-controls";
+import { PurchaseActions } from "./purchase-actions";
+import { CsvImport } from "./csv-import";
+import { reportingEntries, removeTransaction } from "@/lib/local/ledger";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import {
   Plus,
   Search,
@@ -7,6 +12,8 @@ import {
   Trash2,
   Pencil,
   SlidersHorizontal,
+  Ellipsis,
+  Upload,
 } from "lucide-react";
 import { useFinance } from "./provider";
 import { useEntry } from "./workspace";
@@ -17,21 +24,39 @@ import type { Transaction } from "@/lib/local/model";
 import { Money } from "./ui";
 import { formatMoney } from "@/lib/finance/money";
 export function Transactions() {
+  return (
+    <Suspense fallback={<p role="status">Загружаем операции…</p>}>
+      <TransactionRoute />
+    </Suspense>
+  );
+}
+function TransactionRoute() {
+  const params = useSearchParams();
+  return (
+    <TransactionContent key={params.toString()} search={params.toString()} />
+  );
+}
+function TransactionContent({ search }: { search: string }) {
+  const param = (key: string) => new URLSearchParams(search).get(key) ?? "";
   const { state, update } = useFinance(),
     open = useEntry();
   const [query, setQuery] = useState(""),
     [type, setType] = useState(""),
-    [account, setAccount] = useState(""),
-    [category, setCategory] = useState(() =>
-      typeof window !== "undefined"
-        ? (new URLSearchParams(window.location.search).get("category") ?? "")
-        : "",
-    ),
-    [from, setFrom] = useState(""),
-    [to, setTo] = useState(""),
+    [account, setAccount] = useState(() => param("account")),
+    [category, setCategory] = useState(() => param("category")),
+    [from, setFrom] = useState(() => param("from")),
+    [to, setTo] = useState(() => param("to")),
     [page, setPage] = useState(1),
     [remove, setRemove] = useState<string | null>(null),
     [error, setError] = useState("");
+  const [tag, setTag] = useState(() => param("tag")),
+    [merchant, setMerchant] = useState(() => param("merchant"));
+  const [importing, setImporting] = useState(false);
+  const [action, setAction] = useState<Transaction | null>(null);
+  const [purchase, setPurchase] = useState<{
+    transaction: Transaction;
+    mode: "split" | "refund";
+  } | null>(null);
   const [editing, setEditing] = useState<Transaction | null>(null);
   const [showFilters, setShowFilters] = useState(false);
   const filtered = [...state.transactions]
@@ -41,10 +66,24 @@ export function Transactions() {
         (!account ||
           t.accountId === account ||
           t.destinationAccountId === account) &&
-        (!category || t.categoryId === category) &&
+        (!category ||
+          (t.allocations
+            ? t.allocations.some((a) => a.categoryId === category)
+            : t.categoryId === category)) &&
+        (!tag ||
+          t.tags?.includes(tag) ||
+          (t.refundOf &&
+            state.transactions
+              .find((x) => x.id === t.refundOf)
+              ?.tags?.includes(tag))) &&
+        (!merchant ||
+          t.merchant === merchant ||
+          (t.refundOf &&
+            state.transactions.find((x) => x.id === t.refundOf)?.merchant ===
+              merchant)) &&
         (!from || t.date >= from) &&
         (!to || t.date <= to) &&
-        `${t.description} ${state.categories.find((c) => c.id === t.categoryId)?.name ?? ""}`
+        `${t.description} ${t.merchant ?? ""} ${t.tags?.join(" ") ?? ""} ${state.categories.find((c) => c.id === t.categoryId)?.name ?? ""}`
           .toLowerCase()
           .includes(query.toLowerCase()),
     )
@@ -60,15 +99,33 @@ export function Transactions() {
     const safe = (v: string) =>
       `"${(/^[=+\-@\t\r]/.test(v) ? "'" : "") + v.replaceAll('"', '""')}"`;
     const rows = [
-      ["Дата", "Тип", "Сумма", "Валюта", "Категория", "Счёт", "Описание"],
+      [
+        "Дата",
+        "Тип",
+        "Сумма",
+        "Валюта",
+        "Категория",
+        "Счёт",
+        "Описание",
+        "Магазин",
+        "Теги",
+        "ID",
+        "Части покупки",
+        "Возврат покупки",
+      ],
       ...filtered.map((t) => [
         t.date,
-        t.type,
+        t.refundOf ? "refund" : t.allocations ? "split" : t.type,
         (t.amountMinor / 100).toFixed(2),
         state.accounts.find((a) => a.id === t.accountId)?.currency ?? "",
         state.categories.find((c) => c.id === t.categoryId)?.name ?? "",
         state.accounts.find((a) => a.id === t.accountId)?.name ?? "",
         t.description,
+        t.merchant ?? "",
+        t.tags?.join(", ") ?? "",
+        t.externalId ?? t.id,
+        t.allocations ? JSON.stringify(t.allocations) : "",
+        t.refundOf ?? "",
       ]),
     ];
     download(
@@ -86,6 +143,12 @@ export function Transactions() {
           <p>Все движения денег в одном месте</p>
         </div>
         <div className="button-row">
+          <button
+            className="btn-secondary"
+            onClick={() => setImporting(!importing)}
+          >
+            <Upload size={17} /> Импорт CSV
+          </button>
           <button className="btn-secondary" onClick={csv}>
             <Download size={17} />
             CSV
@@ -96,6 +159,7 @@ export function Transactions() {
           </button>
         </div>
       </div>
+      {importing && <CsvImport onClose={() => setImporting(false)} />}
       <div className="filter-toolbar">
         <button
           className="btn-secondary"
@@ -103,14 +167,17 @@ export function Transactions() {
           onClick={() => setShowFilters(!showFilters)}
         >
           <SlidersHorizontal size={17} /> Фильтры
-          {[type, account, category, from, to].filter(Boolean).length
-            ? ` · ${[type, account, category, from, to].filter(Boolean).length}`
+          {[type, account, category, from, to, tag, merchant].filter(Boolean)
+            .length
+            ? ` · ${[type, account, category, from, to, tag, merchant].filter(Boolean).length}`
             : ""}
         </button>
         <button
           className="text-button"
           onClick={() => {
             setQuery("");
+            setTag("");
+            setMerchant("");
             setType("");
             setAccount("");
             setCategory("");
@@ -137,7 +204,7 @@ export function Transactions() {
             }}
           />
         </div>
-        <select
+        <BrandSelect
           aria-label="Тип операции"
           value={type}
           onChange={(e) => setType(e.target.value)}
@@ -147,8 +214,8 @@ export function Transactions() {
           <option value="income">Доход</option>
           <option value="transfer">Перевод</option>
           <option value="adjustment">Корректировка</option>
-        </select>
-        <select
+        </BrandSelect>
+        <BrandSelect
           aria-label="Счёт"
           value={account}
           onChange={(e) => setAccount(e.target.value)}
@@ -159,8 +226,8 @@ export function Transactions() {
               {a.name}
             </option>
           ))}
-        </select>
-        <select
+        </BrandSelect>
+        <BrandSelect
           aria-label="Категория"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
@@ -171,23 +238,46 @@ export function Transactions() {
               {c.name}
             </option>
           ))}
-        </select>
+        </BrandSelect>
         <label className="date-filter">
           С
-          <input
+          <BrandDate
             aria-label="С даты"
-            type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
           />
         </label>
         <label className="date-filter">
           По
-          <input
+          <BrandDate
             aria-label="По дату"
-            type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
+          />
+        </label>
+      </div>
+      <div className="report-filter-grid">
+        <label>
+          Тег
+          <BrandSelect
+            aria-label="Тег"
+            value={tag}
+            onChange={(e) => setTag(e.target.value)}
+          >
+            <option value="">Все события</option>
+            {[...new Set(state.transactions.flatMap((t) => t.tags ?? []))].map(
+              (t) => (
+                <option key={t}>{t}</option>
+              ),
+            )}
+          </BrandSelect>
+        </label>
+        <label>
+          Магазин / источник
+          <input
+            value={merchant}
+            onChange={(e) => setMerchant(e.target.value)}
+            placeholder="Точное название"
           />
         </label>
       </div>
@@ -202,7 +292,15 @@ export function Transactions() {
             </small>
             <strong>
               <Money
-                value={filtered
+                value={reportingEntries({
+                  ...state,
+                  transactions: state.transactions,
+                })
+                  .filter(
+                    (t) =>
+                      filtered.some((x) => x.id === t.id) &&
+                      (!category || t.categoryId === category),
+                  )
                   .filter(
                     (t) =>
                       t.type === item.type &&
@@ -245,10 +343,28 @@ export function Transactions() {
                     <button
                       className="icon-button"
                       aria-label={`Редактировать ${t.description || "операцию"}`}
+                      disabled={
+                        !!t.refundOf ||
+                        state.transactions.some((x) => x.refundOf === t.id)
+                      }
+                      title={
+                        t.refundOf
+                          ? "Для исправления удалите возврат и создайте заново"
+                          : undefined
+                      }
                       onClick={() => setEditing(t)}
                     >
                       <Pencil size={15} />
                     </button>
+                    {t.type === "expense" && (
+                      <button
+                        className="icon-button"
+                        aria-label={`Действия с покупкой ${t.description || "операция"}`}
+                        onClick={() => setAction(t)}
+                      >
+                        <Ellipsis size={16} />
+                      </button>
+                    )}
                     <button
                       className="icon-button"
                       aria-label={`Удалить ${t.description || "операцию"}`}
@@ -301,6 +417,40 @@ export function Transactions() {
           />
         </section>
       )}
+      {action && (
+        <Modal title="Действия с покупкой" onClose={() => setAction(null)}>
+          <div className="action-list">
+            <button
+              className="btn-secondary"
+              disabled={state.transactions.some(
+                (t) => t.refundOf === action.id,
+              )}
+              onClick={() => {
+                setPurchase({ transaction: action, mode: "split" });
+                setAction(null);
+              }}
+            >
+              Разделить по категориям
+            </button>
+            <button
+              className="btn-secondary"
+              onClick={() => {
+                setPurchase({ transaction: action, mode: "refund" });
+                setAction(null);
+              }}
+            >
+              Оформить возврат
+            </button>
+            <p className="hint">
+              Покупку с возвратами нельзя перераспределить, пока возвраты не
+              удалены.
+            </p>
+          </div>
+        </Modal>
+      )}
+      {purchase && (
+        <PurchaseActions {...purchase} onClose={() => setPurchase(null)} />
+      )}
       {editing && (
         <EntryForm
           key={editing.id}
@@ -338,18 +488,15 @@ export function Transactions() {
               onClick={async () => {
                 try {
                   await update((s) => {
-                    const t = s.transactions.find((t) => t.id === remove);
-                    return {
-                      ...s,
-                      transactions: s.transactions.filter(
-                        (t) => t.id !== remove,
-                      ),
-                      resolved: s.resolved.filter((k) => k !== t?.recurringKey),
-                    };
+                    return removeTransaction(s, remove);
                   });
                   setRemove(null);
-                } catch {
-                  setError("Не удалось сохранить изменения");
+                } catch (e) {
+                  setError(
+                    e instanceof Error
+                      ? e.message
+                      : "Не удалось сохранить изменения",
+                  );
                 }
               }}
             >

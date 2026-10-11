@@ -1,4 +1,5 @@
 "use client";
+import { BrandSelect } from "./branded-controls";
 import { useState, type FormEvent } from "react";
 import { ArrowRight, ShieldCheck, Sprout } from "lucide-react";
 import { useFinance } from "./provider";
@@ -147,11 +148,11 @@ export function Onboarding() {
                 />
               </Field>
               <Field label="Основная валюта">
-                <select {...input("currency")}>
+                <BrandSelect {...input("currency")}>
                   <option value="RUB">Российский рубль · ₽</option>
                   <option value="USD">Доллар США · $</option>
                   <option value="EUR">Евро · €</option>
-                </select>
+                </BrandSelect>
               </Field>
             </>
           ) : step === 1 ? (
@@ -179,11 +180,11 @@ export function Onboarding() {
                 />
               </Field>
               <Field label="Желаемая подушка">
-                <select {...input("reserve")}>
+                <BrandSelect {...input("reserve")}>
                   <option value="1">На 1 месяц</option>
                   <option value="3">На 3 месяца</option>
                   <option value="6">На 6 месяцев</option>
-                </select>
+                </BrandSelect>
               </Field>
             </>
           )}

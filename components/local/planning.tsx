@@ -1,4 +1,6 @@
 "use client";
+import { BrandSelect, BrandDate } from "./branded-controls";
+import { SpendingPlan } from "./spending-plan";
 import { Glyph } from "./glyph";
 import { WhatIf } from "./intelligence";
 import { useState } from "react";
@@ -86,6 +88,7 @@ export function Planning() {
           Регулярный платёж
         </button>
       </div>
+      <SpendingPlan />
       <div className="planning-grid">
         <section className="card chart-card">
           <div className="section-title">
@@ -95,7 +98,7 @@ export function Planning() {
                 Ликвидный баланс · уверенность: {f.confidence.toLowerCase()}
               </p>
             </div>
-            <select
+            <BrandSelect
               aria-label="Горизонт прогноза"
               value={days}
               onChange={(e) => setDays(Number(e.target.value))}
@@ -105,7 +108,7 @@ export function Planning() {
                   {d} дней
                 </option>
               ))}
-            </select>
+            </BrandSelect>
           </div>
           <div className="forecast-heading">
             <strong>
@@ -530,9 +533,8 @@ function PurchaseCalculator() {
             />
           </Field>
           <Field label="Дата покупки">
-            <input
+            <BrandDate
               name="date"
-              type="date"
               min={today(state.profile.timezone)}
               max={format(
                 addDays(parseISO(today(state.profile.timezone)), 365),

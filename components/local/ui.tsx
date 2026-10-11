@@ -1,4 +1,5 @@
 "use client";
+import { FieldLabelContext } from "./branded-controls";
 import { SheetForm } from "./sheet-form";
 import { useFinance } from "./provider";
 import { formatMoney } from "@/lib/finance/money";
@@ -192,10 +193,12 @@ export function Field({
   children: ReactNode;
 }) {
   return (
-    <label className="form-field">
-      <span>{label}</span>
-      {children}
-    </label>
+    <FieldLabelContext.Provider value={label}>
+      <label className="form-field">
+        <span>{label}</span>
+        {children}
+      </label>
+    </FieldLabelContext.Provider>
   );
 }
 export function download(

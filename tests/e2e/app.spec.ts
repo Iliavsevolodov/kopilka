@@ -1,9 +1,12 @@
+import { pick } from "./control-helpers";
 import { test, expect, type Page } from "@playwright/test";
 async function onboard(page: Page) {
   await page.goto("/dashboard");
-  await page.getByLabel("Ваше имя").fill("Тест");
+  await page.getByLabel("Ваше имя", { exact: true }).fill("Тест");
   await page.getByRole("button", { name: "Продолжить", exact: true }).click();
-  await page.getByLabel("Сколько денег на основной карте?").fill("100000");
+  await page
+    .getByLabel("Сколько денег на основной карте?", { exact: true })
+    .fill("100000");
   await page.getByRole("button", { name: "Продолжить", exact: true }).click();
   await page.getByRole("button", { name: "Открыть мою Копилку" }).click();
   await expect(page.locator(".hero-amount")).toContainText("100");
@@ -27,7 +30,9 @@ test("onboarding, accounts, expense, transfer, income, goal, budget and recurrin
   await page.getByRole("button", { name: "Расход", exact: true }).click();
   let dialog = page.getByRole("dialog");
   await dialog.getByLabel("Сумма", { exact: true }).fill("10000");
-  await dialog.getByLabel("Комментарий").fill("Проверка расхода");
+  await dialog
+    .getByLabel("Комментарий", { exact: true })
+    .fill("Проверка расхода");
   await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(page.locator(".hero-amount")).toContainText("90");
   await page.goto("/accounts");
@@ -37,7 +42,7 @@ test("onboarding, accounts, expense, transfer, income, goal, budget and recurrin
   dialog = page.getByRole("dialog");
   await dialog.getByLabel("Название", { exact: true }).fill("Накопительный");
   await dialog.getByLabel("Сумма", { exact: true }).fill("0");
-  await dialog.getByLabel("Тип счёта").selectOption("savings");
+  await pick(page, dialog.getByLabel("Тип счёта", { exact: true }), "savings");
   await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Накопительный", exact: true }),
@@ -48,9 +53,11 @@ test("onboarding, accounts, expense, transfer, income, goal, budget and recurrin
     .click();
   dialog = page.getByRole("dialog");
   await dialog.getByLabel("Сумма", { exact: true }).fill("20000");
-  await dialog
-    .getByRole("combobox", { name: "На счёт", exact: true })
-    .selectOption({ label: "Накопительный · RUB" });
+  await pick(
+    page,
+    dialog.getByRole("combobox", { name: "На счёт", exact: true }),
+    { label: "Накопительный · RUB" },
+  );
   await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await page.goto("/dashboard");
@@ -68,8 +75,10 @@ test("onboarding, accounts, expense, transfer, income, goal, budget and recurrin
   dialog = page.getByRole("dialog");
   await dialog.getByLabel("Название", { exact: true }).fill("Отпуск");
   await dialog.getByLabel("Сумма", { exact: true }).fill("500000");
-  await dialog.getByLabel("Уже выделено на цель").fill("10000");
-  await dialog.getByLabel("К какой дате").fill("2027-08-08");
+  await dialog
+    .getByLabel("Уже выделено на цель", { exact: true })
+    .fill("10000");
+  await dialog.getByLabel("К какой дате", { exact: true }).fill("2027-08-08");
   await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(
     page.getByRole("heading", { name: "Отпуск", exact: true }),
@@ -86,10 +95,12 @@ test("onboarding, accounts, expense, transfer, income, goal, budget and recurrin
   dialog = page.getByRole("dialog");
   await dialog.getByLabel("Название", { exact: true }).fill("Интернет");
   await dialog.getByLabel("Сумма", { exact: true }).fill("1000");
-  const today = await dialog.getByLabel("Начало расписания").inputValue();
+  const today = await dialog
+    .getByLabel("Начало расписания", { exact: true })
+    .inputValue();
   await dialog
-    .getByLabel("День каждого месяца")
-    .fill(String(Number(today.slice(8))));
+    .getByLabel("День каждого месяца", { exact: true })
+    .fill(String(Number(today.slice(0, 2))));
   await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
   expect((await state(page)).transactions).toHaveLength(3);
   await page.getByRole("button", { name: "Оплачено", exact: true }).click();
@@ -123,7 +134,9 @@ test("demo isolation, backup and explicit deletion confirmation", async ({
   await page
     .getByRole("button", { name: "Удалить данные на устройстве" })
     .click();
-  await page.getByLabel("Введите УДАЛИТЬ для подтверждения").fill("УДАЛИТЬ");
+  await page
+    .getByLabel("Введите УДАЛИТЬ для подтверждения", { exact: true })
+    .fill("УДАЛИТЬ");
   await page.getByRole("button", { name: "Удалить навсегда" }).click();
   await expect(
     page.getByRole("heading", { name: "Давайте познакомимся" }),
@@ -160,9 +173,11 @@ test("all screens responsive with no horizontal scrolling", async ({
 test("dark mode, hidden balances and valid PWA manifest", async ({ page }) => {
   await demo(page);
   await page.goto("/profile");
-  await page
-    .getByRole("combobox", { name: "Тема", exact: true })
-    .selectOption("dark");
+  await pick(
+    page,
+    page.getByRole("combobox", { name: "Тема", exact: true }),
+    "dark",
+  );
   await page.getByRole("button", { name: "Сохранить настройки" }).click();
   await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
   await page.goto("/dashboard");
@@ -212,7 +227,9 @@ test("editing changes balance once and keeps the same transaction", async ({
   await page.getByRole("button", { name: "Расход", exact: true }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Сумма", { exact: true }).fill("10000");
-  await dialog.getByLabel("Комментарий").fill("Проверка редактирования");
+  await dialog
+    .getByLabel("Комментарий", { exact: true })
+    .fill("Проверка редактирования");
   await dialog.getByRole("button", { name: "Сохранить", exact: true }).click();
   await expect(page.locator(".hero-amount")).toContainText("90");
   await page.goto("/transactions");
@@ -244,9 +261,13 @@ test("scenario and local assistant work without modifying recorded finances", as
   );
   await page.goto("/plan");
   const scenario = page.locator(".what-if");
-  await scenario.getByLabel("Изменение дохода в месяц").fill("20000");
+  await scenario
+    .getByLabel("Изменение дохода в месяц", { exact: true })
+    .fill("20000");
   await expect(scenario.locator(".scenario-result")).toContainText("Разница");
-  await scenario.getByLabel("Разовая покупка сейчас").fill("-1");
+  await scenario
+    .getByLabel("Разовая покупка сейчас", { exact: true })
+    .fill("-1");
   await expect(scenario.getByRole("alert")).toBeVisible();
   await page.goto("/assistant");
   await page.getByRole("button", { name: "Что будет через месяц?" }).click();
@@ -268,7 +289,9 @@ test("mobile entry sheets fit without scrolling and retain values between steps"
   await expect(dialog.locator(".sheet-form")).toBeVisible();
   await dialog.getByLabel("Сумма", { exact: true }).fill("321");
   await dialog.getByRole("button", { name: "Далее", exact: true }).click();
-  await dialog.getByLabel("Комментарий").fill("Проверка шторки");
+  await dialog
+    .getByLabel("Комментарий", { exact: true })
+    .fill("Проверка шторки");
   await dialog.getByRole("button", { name: "Назад", exact: true }).click();
   await expect(dialog.getByLabel("Сумма", { exact: true })).toHaveValue("321");
   for (const height of [667, 350, 420, 844]) {
